@@ -1,8 +1,12 @@
 # Copyright 2018 Cloudbase Solutions Srl
 # All Rights Reserved.
+import math
+import datetime
 
 from oslo_log import log as logging
 from neutronclient.common.exceptions import NotFound
+from glanceclient.common.exceptions import NotFound as ImageNotFound
+from oslo_utils import units
 
 LOG = logging.getLogger(__name__)
 
@@ -20,7 +24,8 @@ def find_source_instances_by_name(client, instance_names):
         "attached_storage": ["cindervoltype1", "cindervoltype2", ...]
     }
     """
-    instances_list = client.nova.servers.list(search_opts={'all_tenants': 1})
+    instances_list = client.nova.servers.list(
+        search_opts={'all_tenants': True})
     instance_info_list = []
     for instance in instances_list:
         if instance.name in instance_names:
@@ -120,3 +125,111 @@ def validate_migration_options(
         LOG.info("%s volume types are not mapped." %
                  instance_volume_types -
                  source_mapped_volume_types)
+
+
+def _get_instance_assessment(source_client, instance):
+    nova = source_client.nova
+    glance = source_client.glance
+    cinder = source_client.cinder
+
+    assessment = {}
+    assessment['storage'] = {}
+    total_size_gb = 0
+    if instance.image:
+        # Taking in account that the source image might be deleted
+        try:
+            image = glance.images.get(instance.image.get('id'))
+            image_size = math.ceil(image.size / units.Gi)
+            total_size_gb += image_size
+            image_info = {"size_bytes": image.size,
+                          "source_image_name": image.name,
+                          "os_type": image.get("os_type", "linux")}
+            assessment["storage"]["image"] = image_info
+        except ImageNotFound:
+            pass
+
+    volume_ids = [vol.id for vol in
+                  nova.volumes.get_server_volumes(instance.id)]
+    volumes = [cinder.volumes.find(id=vol_id) for vol_id in volume_ids]
+    total_size_gb += sum([volume.size for volume in volumes])
+    volumes_info = [{"volume_name": volume.name,
+                     "volume_id": volume.id,
+                     "size_bytes": units.Gi * volume.size}
+                    for volume in volumes]
+    assessment["storage"]["volumes"] = volumes_info
+
+    instance_flavor = nova.flavors.get(instance.flavor['id'])
+    total_size_gb += instance_flavor.disk
+    flavor_info = {"flavor_name": instance_flavor.name,
+                   "flavor_id": instance_flavor.id,
+                   "flavor_vcpus": instance_flavor.vcpus,
+                   "flavor_disk_size":
+                   instance_flavor.disk * units.Gi}
+    assessment["storage"]["flavor"] = flavor_info
+
+    tenant_id = instance.tenant_id
+    tenant_name = source_client.get_project_name(tenant_id)
+    assessment["instance_name"] = instance.name
+    assessment["instance_id"] = instance.id
+    assessment["source_tenant_id"] = tenant_id
+    assessment["source_tenant_name"] = tenant_name
+    assessment["storage"]["total_size_gb"] = total_size_gb
+
+    return assessment
+
+
+def get_instances_assessment(source_client, instances_names):
+    nova = source_client.nova
+    instances = []
+    for instance_el in nova.servers.list(search_opts={'all_tenants': True}):
+        if instance_el.name in instances_names:
+            instances.append(instance_el)
+    found_instances = {instance.name for instance in instances}
+
+    if (set(instances_names) - found_instances) != set():
+        raise ValueError("Instances %s have not been found!" %
+                         (set(instances_names) - found_instances))
+
+    assessment_list = []
+    for instance in instances:
+        assessment = _get_instance_assessment(source_client, instance)
+        assessment_list.append(assessment)
+
+    return assessment_list
+
+
+def get_migration_assessment(source_client, coriolis, migration_id):
+
+    migration = coriolis.migrations.get(migration_id)
+
+    creation_timestamp = migration.tasks[0].updated_at
+    finish_timestamp = migration.tasks[-1].updated_at
+    creation_date = datetime.datetime.strptime(
+        creation_timestamp, '%Y-%m-%dT%H:%M:%S.%f')
+    finish_date = datetime.datetime.strptime(
+        finish_timestamp, '%Y-%m-%dT%H:%M:%S.%f')
+
+    interval_date = finish_date - creation_date
+
+    migration_instances = migration.instances
+    assessment_list = get_instances_assessment(source_client,
+                                               migration_instances)
+    for assessment in assessment_list:
+        assessment["migration"] = {}
+        assessment["migration"]["migration_id"] = migration.id
+        assessment["migration"]["migration_status"] = migration.status
+        assessment["migration"]["migration_time"] = str(interval_date)
+        previous_migration_ids = []
+        for migr_thin in coriolis.migrations.list():
+            migr = coriolis.migrations.get(migr_thin.id)
+            prev_creation_timestamp = migr.tasks[0].updated_at
+            prev_creation_date = datetime.datetime.strptime(
+                prev_creation_timestamp, '%Y-%m-%dT%H:%M:%S.%f')
+
+            if (assessment["instance_name"] in migr.instances and
+                    prev_creation_date < creation_date):
+                previous_migration_ids.append(migr.id)
+
+        assessment["migration"]["previous_migrations"] = previous_migration_ids
+
+    return assessment_list
