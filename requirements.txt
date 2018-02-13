@@ -1,0 +1,10 @@
+oslo.config
+oslo.log
+pbr
+git+https://github.com/cloudbase/python-coriolisclient.git@master#egg=coriolis_openstack_utils
+python-cinderclient
+python-glanceclient
+python-keystoneclient
+python-neutronclient
+python-novaclient<10.0.0
+python-swiftclient

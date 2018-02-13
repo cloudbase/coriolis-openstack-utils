@@ -1,0 +1,60 @@
+### Sample configuration file for the Coriolis
+### OpenStack -> Openstack utility modules
+
+[DEFAULT]
+log_file = /var/log/coriolis/coriolis-openstack-utils.log
+verbose = true
+logging_exception_prefix = %(color)s%(asctime)s.%(msecs)03d TRACE %(name)s [01;35m%(instance)s[00m
+logging_default_format_string = %(color)s %(levelname)s %(name)s [[00;36m-%(color)s] [01;35m %(message)s[00m
+
+[coriolis]
+identity_api_version = 3
+auth_url = http://<coriolis_keystone_host>:5000
+username = <coriolis_username>
+password = <coriolis_user_password>
+project_name = <coriolis_project_name>
+user_domain_name = <coriolis_user_domain_name>
+project_domain_name = <coriolis_project_domain_name>
+allow_untrusted = False
+
+[source]
+# Format for Endpoint names on source. Must contain the
+# format string '%(tenant)s'. Can optionally contain
+# '%(region)s' and '%(user)s' as well.
+endpoint_name_format = "Source_%(tenant)s"
+identity_api_version = 3
+auth_url = http://<source_keystone_host>:5000
+region_name = RegionOne
+username = <source_username>
+password = <source_user_password>
+project_name = <source_project_name>
+user_domain_name = <source_user_domain_name>
+project_domain_name = <source_project_domain_name>
+allow_untrusted = False
+
+[destination]
+# NOTE: "new_tenant_name_format" must contain the format string '%(original)s'
+new_tenant_name_format = "%(original)s-Migrated"
+# Format for Endpoint names on source. Must contain the
+# format string '%(tenant)s'. Can optionally contain
+# '%(region)s' and '%(user)s' as well.
+endpoint_name_format = "Destination_%(tenant)s"
+# Name of the role to add the given user as in newly-created tenants.
+admin_role_name = "admin"
+skip_os_morphing = True
+identity_api_version = 3
+auth_url = http://<destination_keystone_host>:5000
+region_name = RegionTwo
+username = <destination_username>
+password = <destination_password>
+project_name = <destination_project_name>
+user_domain_name = <destination_user_domain_name>
+project_domain_name = <destination_project_domain_name>
+allow_untrusted = False
+network_map = external: external, yes: no
+# storage_map = iscsi1:iscsi2
+
+# Quotas for the newly-created tenant(s):
+new_tenant_nova_quotas = instances: -1, cores: -1, ram: -1, key_pairs: -1
+new_tenant_cinder_quotas = volumes: -1, gigabytes: -1
+new_tenant_neutron_quotas = security_group: -1
