@@ -235,7 +235,12 @@ class SourceEndpointCreationAction(Action):
 
     def equivalent_to(self, other_action):
         if other_action.action_type == self.action_type:
-            if utils.check_dict_equals(self.payload, other_action.payload):
+            # NOTE: we only really need to check the tenant name, as
+            # connection info should be the same, and the same action
+            # type scoping won't lead to source endpoints overriding
+            # destination endpoints or vice-versa.
+            if (self.payload["instance_tenant_name"] ==
+                    other_action.payload["instance_tenant_name"]):
                 return True
 
         return False
