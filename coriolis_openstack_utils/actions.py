@@ -178,17 +178,13 @@ class TenantCreationAction(Action):
             "security_group_id": secgroup["id"],
             # NOTE: egress traffic is allowed by default:
             "direction": "ingress",
-            # NOTE: set of allowed values doesn't include 1/65535
-            "port_range_min": 1,
-            "port_range_max": 65534,
+            # NOTE: intentionally not setting 'port_range_{min,max}'
             "remote_ip_prefix": "0.0.0.0/0"}
 
         protocols = CONF.destination.new_tenant_allowed_protocols
         for protocol in protocols:
             rule = copy.deepcopy(generic_allow_rule)
             rule["protocol"] = protocol
-            if protocol == "icmp":
-                rule["port_range_max"] = 254
 
             LOG.info(
                 "Adding rule to allow '%s' traffic in new tenant '%s'",
