@@ -191,11 +191,10 @@ class OpenStackClient(object):
 
         return [p.name for p in projects]
 
-    def create_project(
-            self, project_name, project_description,
-            admin_role_name="admin"):
-        project = None
-        username = self.connection_info["username"]
+    def add_admin_role_to_project(
+            self, project_name, username, admin_role_name="admin"):
+        project_id = self.get_project_id(project_name)
+        # get user ID:
         users = [u for u in self.keystone.users.list() if u.name == username]
         if not users:
             raise Exception(
@@ -207,6 +206,7 @@ class OpenStackClient(object):
                     username, self.connection_info))
         user_id = users[0].id
 
+        # get admin role ID:
         admin_roles = [
             r for r in self.keystone.roles.list()
             if r.name == admin_role_name]
@@ -220,11 +220,22 @@ class OpenStackClient(object):
                     admin_role_name))
         admin_role_id = admin_roles[0].id
 
+        LOG.info(
+            "Adding admin role for user '%s' in tenant '%s'",
+            username, project_name)
+        if int(self.connection_info["identity_api_version"]) == 2:
+            self.keystone.roles.add_user_role(
+                user_id, admin_role_id, tenant=project_id)
+        else:
+            self.keystone.roles.grant(
+                admin_role_id, user=user_id, project=project_id)
+
+    def create_project(self, project_name, project_description):
+        project = None
+
         if int(self.connection_info["identity_api_version"]) == 2:
             project = self.keystone.tenants.create(
                 project_name, project_description)
-            self.keystone.roles.add_user_role(
-                user_id, admin_role_id, tenant=project.id)
         else:
             # NOTE: the `domain_name`.lower() is a workaround to needing
             # the domain ID (not the name!)
@@ -232,7 +243,5 @@ class OpenStackClient(object):
             project = self.keystone.projects.create(
                 project_name, domain_name,
                 description=project_description)
-            self.keystone.roles.grant(
-                admin_role_id, user=user_id, project=project.id)
 
         return project.id
