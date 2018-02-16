@@ -3,12 +3,14 @@
 
 import abc
 import copy
+import time
 from six import with_metaclass
 
 from oslo_log import log as logging
 
 from coriolis_openstack_utils import conf
 from coriolis_openstack_utils import instances
+from coriolis_openstack_utils import openstack_client
 from coriolis_openstack_utils import utils
 
 
@@ -139,6 +141,61 @@ class TenantCreationAction(Action):
         self._openstack_client.nova.quotas.update(
             tenant_id, **updated_nova_quotas)
 
+    def _allow_secgroup_traffic(self):
+        tenant_name = self.get_new_tenant_name()
+        tenant_id = self._openstack_client.get_project_id(
+            tenant_name)
+
+        # NOTE: in order to see the new secgroup we must use the
+        # right tenant name:
+        new_connection_info = copy.deepcopy(
+            self._openstack_client.connection_info)
+        new_connection_info["project_name"] = tenant_name
+        new_client = openstack_client.OpenStackClient(new_connection_info)
+
+        # NOTE: secgroup may not have been created yet, wait for it:
+        LOG.info(
+            "Waiting for tenant '%s' default security group creation.",
+            tenant_name)
+        while True:
+            secgroups = new_client.neutron.list_security_groups()[
+                "security_groups"]
+            secgroups = [s for s in secgroups if s["tenant_id"] == tenant_id]
+            if len(secgroups) > 1:
+                raise Exception(
+                    "Multiple 'default' secgroups found in destination tenant "
+                    "'%s'. Please delete all but one, or rerun without the "
+                    "tenant security group option." % tenant_name)
+
+            if not secgroups:
+                time.sleep(4)
+            else:
+                break
+
+        # NOTE: the 'default' secgroup should always be there:
+        secgroup = secgroups[0]
+        generic_allow_rule = {
+            "security_group_id": secgroup["id"],
+            # NOTE: egress traffic is allowed by default:
+            "direction": "ingress",
+            # NOTE: set of allowed values doesn't include 1/65535
+            "port_range_min": 1,
+            "port_range_max": 65534,
+            "remote_ip_prefix": "0.0.0.0/0"}
+
+        protocols = CONF.destination.new_tenant_allowed_protocols
+        for protocol in protocols:
+            rule = copy.deepcopy(generic_allow_rule)
+            rule["protocol"] = protocol
+            if protocol == "icmp":
+                rule["port_range_max"] = 254
+
+            LOG.info(
+                "Adding rule to allow '%s' traffic in new tenant '%s'",
+                protocol, tenant_name)
+            new_client.neutron.create_security_group_rule({
+                "security_group_rule": rule})
+
     def equivalent_to(self, other_action):
         if other_action.action_type == self.action_type:
             if self.payload["instance_tenant_name"] == (
@@ -190,6 +247,9 @@ class TenantCreationAction(Action):
         # might not be immediately visible, so we must wait for it:
         self._openstack_client.wait_for_project_creation(tenant_name)
         self._update_tenant_quotas()
+
+        if CONF.destination.new_tenant_open_default_secgroup:
+            self._allow_secgroup_traffic()
 
         return new_project_id
 

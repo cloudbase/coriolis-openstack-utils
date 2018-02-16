@@ -81,12 +81,22 @@ NEW_TENANT_CINDER_QUOTAS_OPT = conf.DictOpt(
 NEW_TENANT_NOVA_QUOTAS_OPT = conf.DictOpt(
     "new_tenant_nova_quotas", default={"instances": -1},
     help="Mapping of Nova quotas to set on the new tenant.")
+NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT = conf.BoolOpt(
+    "new_tenant_open_default_secgroup", default=False,
+    help="If set, the 'default' security group of newly-created "
+         "tenants will have rules allowing traffic on ALL ports.")
+NEW_TENANT_SECGROUP_PROTOCOLS_OPT = conf.ListOpt(
+    "new_tenant_allowed_protocols", default=["tcp", "udp", "icmp"],
+    help="List of protocols to allow traffic for in default secgroup "
+         "of newly-created tenants. Only effective if "
+         "'new_tenant_open_default_secgroup' is set to True.")
 # TODO (aznashwan): determine value of adding extra migration opts:
 DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     REGION_CONFIG_OPT, NETMAP_OPT, STORMAP_OPT, ENDPOINT_NAME_FORMAT_OPT,
     SKIP_OS_MORPHING_OPT, ADMIN_ROLE_NAME, NEW_TENANT_NAME_OPT,
     NEW_TENANT_NEUTRON_QUOTAS_OPT, NEW_TENANT_CINDER_QUOTAS_OPT,
-    NEW_TENANT_NOVA_QUOTAS_OPT]
+    NEW_TENANT_NOVA_QUOTAS_OPT, NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT,
+    NEW_TENANT_SECGROUP_PROTOCOLS_OPT]
 CONF.register_opts(
     DESTINATION_OPTS, constants.DESTINATION_OPT_GROUP_NAME)
 
