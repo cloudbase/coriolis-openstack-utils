@@ -238,16 +238,28 @@ class TenantCreationAction(Action):
         description = self.NEW_PROJECT_DESCRIPTION % original_tenant_name
         LOG.info("Creating destination tenant with name '%s'" % tenant_name)
         new_project_id = self._openstack_client.create_project(
-            tenant_name, description,
-            admin_role_name=CONF.destination.admin_role_name)
+            tenant_name, description)
 
         LOG.info(
             "Waiting for creation of destination tenant '%s'.", tenant_name)
         # NOTE: depending on the destination OpenStack setup, the above tenant
         # might not be immediately visible, so we must wait for it:
         self._openstack_client.wait_for_project_creation(tenant_name)
+
+        # add user roles:
+        LOG.info("Adding admin user(s) to new tenant '%s'", tenant_name)
+        users = [self._openstack_client.connection_info["username"]]
+        users.extend(
+            CONF.destination.new_tenant_admin_users)
+        for user in users:
+            self._openstack_client.add_admin_role_to_project(
+                tenant_name, user,
+                admin_role_name=CONF.destination.admin_role_name)
+
+        # update quotas:
         self._update_tenant_quotas()
 
+        # open default secgroup:
         if CONF.destination.new_tenant_open_default_secgroup:
             self._allow_secgroup_traffic()
 

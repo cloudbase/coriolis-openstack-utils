@@ -55,6 +55,7 @@ network_map = external: external, yes: no
 # storage_map = iscsi1:iscsi2
 
 # Quotas for the newly-created tenant(s):
+# new_tenant_admin_users = bob, alice, mike
 new_tenant_nova_quotas = instances: -1, cores: -1, ram: -1, key_pairs: -1
 new_tenant_cinder_quotas = volumes: -1, gigabytes: -1
 new_tenant_neutron_quotas = security_group: -1

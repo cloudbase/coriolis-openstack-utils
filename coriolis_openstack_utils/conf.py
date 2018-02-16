@@ -67,6 +67,10 @@ STORMAP_OPT = conf.DictOpt(
 ADMIN_ROLE_NAME = conf.StrOpt(
     "admin_role_name", default="admin",
     help="Name of admin role on destination cloud to use.")
+NEW_TENANT_ADMIN_USERS_OPT = conf.ListOpt(
+    "new_tenant_admin_users", default=[],
+    help="List of pre-existing usernames on the destination which "
+         "should have an add role added in the newly created tenant(s)")
 NEW_TENANT_NAME_OPT = conf.StrOpt(
     "new_tenant_name_format", required=True,
     help="String format for tenant names on the destination. "
@@ -95,8 +99,8 @@ DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     REGION_CONFIG_OPT, NETMAP_OPT, STORMAP_OPT, ENDPOINT_NAME_FORMAT_OPT,
     SKIP_OS_MORPHING_OPT, ADMIN_ROLE_NAME, NEW_TENANT_NAME_OPT,
     NEW_TENANT_NEUTRON_QUOTAS_OPT, NEW_TENANT_CINDER_QUOTAS_OPT,
-    NEW_TENANT_NOVA_QUOTAS_OPT, NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT,
-    NEW_TENANT_SECGROUP_PROTOCOLS_OPT]
+    NEW_TENANT_NOVA_QUOTAS_OPT, NEW_TENANT_ADMIN_USERS_OPT,
+    NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT, NEW_TENANT_SECGROUP_PROTOCOLS_OPT]
 CONF.register_opts(
     DESTINATION_OPTS, constants.DESTINATION_OPT_GROUP_NAME)
 
