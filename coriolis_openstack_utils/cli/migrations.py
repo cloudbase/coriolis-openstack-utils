@@ -95,4 +95,4 @@ class CreateMigrations(lister.Lister):
             else:
                 batch_migration_action.print_operations()
 
-        return migrations
+        return MigrationFormatter().list_objects(migrations)
