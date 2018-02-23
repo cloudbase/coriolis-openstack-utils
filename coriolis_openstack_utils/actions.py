@@ -516,7 +516,16 @@ class MigrationCreationAction(Action):
                     existing_migration.status)
                 done = {
                     "done": True,
-                    "result": existing_migration.id}
+                    "result": {
+                        "instance_name": instance_name,
+                        "migration_id": existing_migration.id,
+                        "status": existing_migration.status,
+                        "origin_endpoint_id":
+                            existing_migration.origin_endpoint_id,
+                        "destination_endpoint_id":
+                            existing_migration.destination_endpoint_id,
+                        "destination_environment": self._destination_env,
+                        "new": False}}
 
         return done
 
@@ -571,7 +580,14 @@ class MigrationCreationAction(Action):
 
         LOG.info("Created new migration for VM '%s': %s" % (
             (instance_name, migration.id)))
-        return migration.id
+        return {
+            "instance_name": instance_name,
+            "migration_id": migration.id,
+            "status": migration.status,
+            "origin_endpoint_id": source_endpoint,
+            "destination_endpoint_id": destination_enpoint,
+            "destination_environment": self._destination_env,
+            "new": True}
 
 
 class BatchMigrationAction(Action):
@@ -725,15 +741,15 @@ class BatchMigrationAction(Action):
             action.execute_operations()
 
         # start migrations:
-        migration_ids = []
+        migrations = []
         for migration_action in self.subactions:
             # NOTE: we pre-executed the subtasks:
-            migration_ids.append(
+            migrations.append(
                 migration_action.execute_operations(
                     subtasks_pre_executed=True))
 
-        LOG.info("### Existing migrations: %s", self._completed_migrations)
-        LOG.info("### New migration ids: %s" % migration_ids)
-        done_ids = [migr["existing_migration_id"]
-                    for migr in self._completed_migrations]
-        return done_ids + migration_ids
+        # LOG.info("### Existing migrations: %s", self._completed_migrations)
+        # LOG.info("### New migration ids: %s" % migration_ids)
+        # done_ids = [migr["existing_migration_id"]
+        #             for migr in self._completed_migrations]
+        return migrations
