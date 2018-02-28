@@ -4,6 +4,7 @@ import yaml
 import json
 import xlsxwriter
 import math
+import jsonschema
 
 from oslo_log import log as logging
 
@@ -12,14 +13,17 @@ from cliff.command import Command
 from coriolis_openstack_utils import conf
 from coriolis_openstack_utils import constants
 from coriolis_openstack_utils import instances
+from coriolis_openstack_utils import utils
 from oslo_utils import units
 
 
 LOG = logging.getLogger(__name__)
+INSTANCE_ASSESS_SCHEMA = 'instance_assess_info.json'
 
 
 def write_excel(result_list, file_path):
     workbook = xlsxwriter.Workbook(file_path)
+    LOG.debug("Opening excel % for writing." % file_path)
     worksheet = workbook.add_worksheet()
     name_col = 0
     worksheet.write(0, name_col, "VM Name")
@@ -44,7 +48,6 @@ def write_excel(result_list, file_path):
                     worksheet.write(row, name_col, value)
                 elif key == "source_tenant_name":
                     worksheet.write(row, src_tenant_col, value)
-                    worksheet.write(row, dst_tenant_col, value+"-Migrated")
                 elif key == "storage":
                     if 'image' in value:
                         image_size = math.ceil(
@@ -96,7 +99,15 @@ class AssessMigrations(Command):
             result = instances.get_migration_assessment(
                 source_client, coriolis, migration_id)
             result_list.append(result)
+        # Validate against json schema
+        schema = utils.get_schema(
+            __name__, INSTANCE_ASSESS_SCHEMA)
+        for assessment_list in result_list:
+            for assessment in assessment_list:
+                LOG.debug("Validated %s against schema." % assessment)
+                jsonschema.validate(assessment, schema)
 
+        # Print to stdout
         if args.format.lower() == "yaml":
             yaml_result = yaml.dump(
                 result_list, default_flow_style=False, indent=4)

@@ -143,7 +143,13 @@ def _get_instance_assessment(source_client, instance):
             total_size_gb += image_size
             image_info = {"size_bytes": image.size,
                           "source_image_name": image.name,
-                          "os_type": image.get("os_type", "linux")}
+                         }
+            os_type = image.get('os_type')
+            os_distro = image.get('os_distro')
+            if os_type:
+                image_info['os_type'] = os_type
+            if os_distro:
+                image_info['os_distro'] = os_distro
             assessment["storage"]["image"] = image_info
         except ImageNotFound:
             pass
@@ -193,6 +199,7 @@ def get_instances_assessment(source_client, instances_names):
     assessment_list = []
     for instance in instances:
         assessment = _get_instance_assessment(source_client, instance)
+        LOG.info("Instance Assessment: %s" % assessment)
         assessment_list.append(assessment)
 
     return assessment_list

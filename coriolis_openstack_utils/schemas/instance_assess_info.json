@@ -33,14 +33,17 @@
                   "type": "string"
                 },
                 "os_type": {
-                  "type": "string",
-                  "enum": [
-                    "linux",
-                    "windows"
-                  ]
+                  "type": "string"
+                },
+                "os_distro": {
+                   "type": "string"
                 }
               }, 
-              "additionalProperties": false
+              "additionalProperties": false,
+              "required": [
+                 "size_bytes",
+                 "source_image_name"
+              ]
             },
             "volumes": {
               "type": "array",

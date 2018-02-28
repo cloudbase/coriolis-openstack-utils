@@ -10,3 +10,5 @@ python-neutronclient
 python-novaclient<10.0.0
 python-swiftclient
 xlsxwriter
+jinja2
+jsonschema
