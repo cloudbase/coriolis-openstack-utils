@@ -143,7 +143,7 @@ def _get_instance_assessment(source_client, instance):
             total_size_gb += image_size
             image_info = {"size_bytes": image.size,
                           "source_image_name": image.name,
-                         }
+                          }
             os_type = image.get('os_type')
             os_distro = image.get('os_distro')
             if os_type:
@@ -184,17 +184,26 @@ def _get_instance_assessment(source_client, instance):
     return assessment
 
 
-def get_instances_assessment(source_client, instances_names):
-    nova = source_client.nova
-    instances = []
-    for instance_el in nova.servers.list(search_opts={'all_tenants': True}):
-        if instance_el.name in instances_names:
-            instances.append(instance_el)
-    found_instances = {instance.name for instance in instances}
+def get_instances_assessment(source_client, instances_names, show_all=False):
 
-    if (set(instances_names) - found_instances) != set():
-        raise ValueError("Instances %s have not been found!" %
-                         (set(instances_names) - found_instances))
+    nova = source_client.nova
+
+    if show_all:
+        instances = nova.servers.list(search_opts={'all_tenants': True})
+    elif instances_names:
+        instances = []
+        for instance_el in nova.servers.list(
+                search_opts={'all_tenants': True}):
+            if instance_el.name in instances_names:
+                instances.append(instance_el)
+        found_instances = {instance.name for instance in instances}
+
+        if (set(instances_names) - found_instances) != set():
+            raise ValueError("Instances %s have not been found!" %
+                             (set(instances_names) - found_instances))
+    else:
+        raise ValueError("No instance names or all parameter",
+                         "passed to function!")
 
     assessment_list = []
     for instance in instances:
@@ -205,7 +214,7 @@ def get_instances_assessment(source_client, instances_names):
     return assessment_list
 
 
-def get_migration_assessment(source_client, coriolis, migration_id):
+def _get_migration_assessment(source_client, coriolis, migration_id):
 
     migration = coriolis.migrations.get(migration_id)
 
@@ -240,3 +249,20 @@ def get_migration_assessment(source_client, coriolis, migration_id):
         assessment["migration"]["previous_migrations"] = previous_migration_ids
 
     return assessment_list
+
+
+def get_migrations_assessment(source_client, coriolis,
+                              migration_ids, show_all=False):
+
+    migration_assessment_list = []
+    if show_all:
+        migration_ids = coriolis.migrations.list()
+    elif not migration_ids:
+        raise ValueError("No migration ids provided!")
+
+    for migration_id in migration_ids:
+        migration_assessment = _get_migration_assessment(
+                source_client, coriolis, migration_id)
+        migration_assessment_list.append(migration_assessment)
+
+    return migration_assessment_list

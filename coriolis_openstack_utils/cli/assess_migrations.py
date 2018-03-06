@@ -82,7 +82,11 @@ class AssessMigrations(Command):
             default="migration_assessment.xlsx",
             help="default filepath for excel format")
         parser.add_argument(
-            "migrations", metavar="MIGRATION_ID", nargs="+")
+            "--all",
+            default=False,
+            help="Show all migrations.")
+        parser.add_argument(
+            "migrations", metavar="MIGRATION_ID", nargs="*")
 
     def take_action(self, args):
         conf.CONF(
@@ -94,11 +98,9 @@ class AssessMigrations(Command):
         migration_ids = args.migrations
         source_client = conf.get_source_openstack_client()
         coriolis = conf.get_coriolis_client()
-        result_list = []
-        for migration_id in migration_ids:
-            result = instances.get_migration_assessment(
-                source_client, coriolis, migration_id)
-            result_list.append(result)
+        result_list = instances.get_migrations_assessment(
+            source_client, coriolis, migration_ids, args.show_all)
+
         # Validate against json schema
         schema = utils.get_schema(
             __name__, INSTANCE_ASSESS_SCHEMA)

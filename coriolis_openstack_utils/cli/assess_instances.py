@@ -27,7 +27,11 @@ class AssessInstances(lister.Lister):
             default="json",
             help="the output format for the data, default is json")
         parser.add_argument(
-            "instances", metavar="INSTANCE_NAME", nargs="+")
+            "--all", dest="show_all",
+            default=False,
+            help="Show all instances.")
+        parser.add_argument(
+            "instances", metavar="INSTANCE_NAME", nargs="*")
 
     def take_action(self, args):
         conf.CONF(
@@ -40,7 +44,7 @@ class AssessInstances(lister.Lister):
         source_client = conf.get_source_openstack_client()
         instance_names = args.instances
         assessment_list = instances.get_instances_assessment(
-            source_client, instance_names)
+            source_client, instance_names, args.show_all)
         # Validating schema
         schema = utils.get_schema(
             __name__, INSTANCE_ASSESS_SCHEMA)
