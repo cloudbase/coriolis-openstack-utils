@@ -1,0 +1,115 @@
+{
+  "$schema": "http://cloudbase.it/coriolis-utils/schemas/instance_assessment#",
+  "type": "object",
+  "properties": {
+    "instances": {
+      "type": "object",
+      "properties": {
+        "instance_name": {
+          "type": "string"
+        },
+        "instance_id": {
+          "type": "string"
+        },
+        "source_tenant_id": {
+          "type": "string"
+        },
+        "source_tenant_name": {
+          "type": "string"
+        },
+        "storage": {
+          "type": "object",
+          "properties": {
+            "total_size_gb": {
+              "type": "integer"
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "size_bytes": {
+                  "type": "integer"
+                },
+                "source_image_name": {
+                  "type": "string"
+                },
+                "os_type": {
+                  "type": "string"
+                },
+                "os_distro": {
+                   "type": "string"
+                }
+              }, 
+              "additionalProperties": false,
+              "required": [
+                 "size_bytes",
+                 "source_image_name"
+              ]
+            },
+            "volumes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "volume_name": {
+                    "type": "string"
+                  },
+                  "volume_id": {
+                    "type": "string"
+                  },
+                  "size_bytes": {
+                    "type": "integer"
+                  }
+                }, 
+                "additionalProperties": false
+              }
+            },
+            "flavor": {
+              "type": "object",
+              "properties": {
+                "flavor_name": {
+                  "type": "string"
+                },
+                "flavor_id": {
+                  "type": "string"
+                },
+                "flavor_disk_size": {
+                  "type": "integer"
+                }
+              }, 
+              "additionalProperties": false
+            }
+          }, 
+          "additionalProperties": false
+        },
+        "migration": {
+          "type": "object",
+          "properties": {
+            "migration_id": {
+              "type": "string"
+            },
+            "migration_status": {
+              "type": "string"
+            },
+            "migration_time": {
+              "type": "string"
+            },
+            "previous_migration_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "instance_name",
+    "instance_id",
+    "source_tenant_id",
+    "source_tenant_name"
+  ]
+}
