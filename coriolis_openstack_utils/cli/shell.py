@@ -47,25 +47,22 @@ class CoriolisOpenStackUtilsApp(app.App):
 
         return parser
 
-    def prepare_to_run_command(self, cmd):
-        """ Entry point for check for minimal parameters and other
-        initialization actions.
-        """
-        args = self.parser.parse_args()
-
-        CONF.conf.CONF(
-            # NOTE: passing the whole of sys.argv[1:] will make
-            # oslo_conf error out with urecognized arguments:
-            ["--config-file", args.conf_file],
-            project=constants.PROJECT_NAME,
-            version=constants.PROJECT_VERSION)
-
     def run(self, argv):
         # display usage if no args provided:
-        if not argv:
+        known_args, remainder = self.parser.parse_known_args()
+        if known_args.conf_file is None:
             self.stderr.write(self.parser.format_usage())
             return 1
-        return super(CoriolisOpenStackUtilsApp, self).run(argv)
+        CONF(
+            # NOTE: passing the whole of sys.argv[1:] will make
+            # oslo_conf error out with urecognized arguments:
+            ["--config-file", known_args.conf_file],
+            project=constants.PROJECT_NAME,
+            version=constants.PROJECT_VERSION)
+        if not remainder:
+            self.stderr.write(self.parser.format_usage())
+            return 1
+        return super(CoriolisOpenStackUtilsApp, self).run(remainder)
 
 
 def _setup_logging():

@@ -57,15 +57,9 @@ class CreateMigrations(lister.Lister):
             help="If unset, tooling will only print the indented operations.")
         parser.add_argument(
             "instances", metavar="INSTANCE_NAME", nargs="+")
+        return parser
 
     def take_action(self, args):
-        conf.CONF(
-            # NOTE: passing the whole of sys.argv[1:] will make
-            # oslo_conf error out with urecognized arguments:
-            ["--config-file", args.conf_file],
-            project=constants.PROJECT_NAME,
-            version=constants.PROJECT_VERSION)
-
         # instantiate all clients:
         coriolis = conf.get_coriolis_client()
         source_client = conf.get_source_openstack_client()
