@@ -91,14 +91,14 @@ class AssessMigrations(Command):
             result = instances.get_migration_assessment(
                 source_client, coriolis, migration_id)
             result_list.append(result)
-
+        assessment_info_format = r'Instance Assessment Info: %s'
         if args.format.lower() == "yaml":
             yaml_result = yaml.dump(
                 result_list, default_flow_style=False, indent=4)
-            print(yaml_result)
+            LOG.info(assessment_info_format % yaml_result)
         elif args.format.lower() == "json":
             json_result = json.dumps(result_list, indent=4)
-            print(json_result)
+            LOG.info(assessment_info_format % json_result)
         elif args.format.lower() == "excel":
             write_excel(result_list, args.excel_filepath)
         else:
