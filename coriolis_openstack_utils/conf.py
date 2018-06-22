@@ -81,6 +81,17 @@ NEW_SECGROUP_NAME_OPT = conf.StrOpt(
     help="String format for security group names on the destination. "
          "Must contain the format string '%(original)s'. "
          "Example: %(original)s-Migrated")
+NEW_SUBNAME_NAME_OPT = conf.StrOpt(
+    "new_subnet_name_format", required=True,
+    help="String format for subnet names on the destination. "
+         "Must contain the format string '%(original)s'. "
+         "Example: %(original)s-Migrated")
+NEW_NETWORK_NAME_OPT = conf.StrOpt(
+    "new_network_name_format", required=True,
+    help="String format for network names on the destination. "
+         "Must contain the format string '%(original)s'. "
+         "Example: %(original)s-Migrated")
+
 
 NEW_TENANT_NEUTRON_QUOTAS_OPT = conf.DictOpt(
     "new_tenant_neutron_quotas", default={"security_group": -1},
@@ -100,6 +111,14 @@ NEW_TENANT_SECGROUP_PROTOCOLS_OPT = conf.ListOpt(
     help="List of protocols to allow traffic for in default secgroup "
          "of newly-created tenants. Only effective if "
          "'new_tenant_open_default_secgroup' is set to True.")
+NEW_NETWORK_TYPE_OPT = conf.DictOpt(
+    "network_type_mapping", default={},
+    help="Mapping between source network type and destination network type.")
+NEW_PHYSICAL_NETWORK_OPT = conf.DictOpt(
+    "physical_network_mapping", default={},
+    help="Mapping between physical networks on source and destination.")
+
+
 # TODO (aznashwan): determine value of adding extra migration opts:
 DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     REGION_CONFIG_OPT, NETMAP_OPT, STORMAP_OPT, ENDPOINT_NAME_FORMAT_OPT,
@@ -107,7 +126,8 @@ DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     NEW_TENANT_NEUTRON_QUOTAS_OPT, NEW_TENANT_CINDER_QUOTAS_OPT,
     NEW_TENANT_NOVA_QUOTAS_OPT, NEW_TENANT_ADMIN_USERS_OPT,
     NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT, NEW_TENANT_SECGROUP_PROTOCOLS_OPT,
-    NEW_SECGROUP_NAME_OPT]
+    NEW_SECGROUP_NAME_OPT, NEW_SUBNAME_NAME_OPT, NEW_NETWORK_NAME_OPT,
+    NEW_NETWORK_TYPE_OPT, NEW_PHYSICAL_NETWORK_OPT]
 CONF.register_opts(
     DESTINATION_OPTS, constants.DESTINATION_OPT_GROUP_NAME)
 
