@@ -76,6 +76,12 @@ NEW_TENANT_NAME_OPT = conf.StrOpt(
     help="String format for tenant names on the destination. "
          "Must contain the format string '%(original)s'. "
          "Example: %(original)s-Migrated")
+NEW_SECGROUP_NAME_OPT = conf.StrOpt(
+    "new_secgroup_name_format", required=True,
+    help="String format for security group names on the destination. "
+         "Must contain the format string '%(original)s'. "
+         "Example: %(original)s-Migrated")
+
 NEW_TENANT_NEUTRON_QUOTAS_OPT = conf.DictOpt(
     "new_tenant_neutron_quotas", default={"security_group": -1},
     help="Mapping of Neutron quotas to set on the new tenant.")
@@ -100,7 +106,8 @@ DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     SKIP_OS_MORPHING_OPT, ADMIN_ROLE_NAME, NEW_TENANT_NAME_OPT,
     NEW_TENANT_NEUTRON_QUOTAS_OPT, NEW_TENANT_CINDER_QUOTAS_OPT,
     NEW_TENANT_NOVA_QUOTAS_OPT, NEW_TENANT_ADMIN_USERS_OPT,
-    NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT, NEW_TENANT_SECGROUP_PROTOCOLS_OPT]
+    NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT, NEW_TENANT_SECGROUP_PROTOCOLS_OPT,
+    NEW_SECGROUP_NAME_OPT]
 CONF.register_opts(
     DESTINATION_OPTS, constants.DESTINATION_OPT_GROUP_NAME)
 

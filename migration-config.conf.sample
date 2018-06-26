@@ -33,8 +33,9 @@ project_domain_name = <source_project_domain_name>
 allow_untrusted = False
 
 [destination]
-# NOTE: "new_tenant_name_format" must contain the format string '%(original)s'
+# NOTE: "*_name_format" must contain the format string '%(original)s'
 new_tenant_name_format = "%(original)s-Migrated"
+new_secgroup_name_format = "%(original)s-Migrated"
 # Format for Endpoint names on source. Must contain the
 # format string '%(tenant)s'. Can optionally contain
 # '%(region)s' and '%(user)s' as well.
