@@ -21,6 +21,8 @@ ACTION_TYPE_CHECK_CREATE_DESTINATION_ENDPOINT = "create_destination_endpoint"
 ACTION_TYPE_CHECK_CREATE_TENANT = "create_tenant"
 ACTION_TYPE_CHECK_CREATE_MIGRATION = "create_migration"
 ACTION_TYPE_CHECK_CREATE_SECGROUP = "create_secgroup"
+ACTION_TYPE_CHECK_CREATE_SUBNET = "create_subnet"
+ACTION_TYPE_CHECK_CREATE_NETWORK = "create_network"
 
 
 class BaseAction(object, with_metaclass(abc.ABCMeta)):

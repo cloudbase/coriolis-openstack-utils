@@ -36,6 +36,8 @@ allow_untrusted = False
 # NOTE: "*_name_format" must contain the format string '%(original)s'
 new_tenant_name_format = "%(original)s-Migrated"
 new_secgroup_name_format = "%(original)s-Migrated"
+new_subnet_name_format = "%(original)s-Migrated"
+new_network_name_format = "%(original)s-Migrated"
 # Format for Endpoint names on source. Must contain the
 # format string '%(tenant)s'. Can optionally contain
 # '%(region)s' and '%(user)s' as well.
@@ -53,6 +55,12 @@ user_domain_name = <destination_user_domain_name>
 project_domain_name = <destination_project_domain_name>
 allow_untrusted = False
 network_map = external: external, yes: no
+# mapping between provider:physical_network on source and destination for
+# network migrations
+# physical_network_mapping = source_physical_network: destination_physical_network
+# mapping between provider:network_type on source and destination for
+# network migrations (ex: vxlan, vlan, gre)
+# network_type_mapping = source_network_type : destination_network_type
 # storage_map = iscsi1:iscsi2
 
 # Quotas for the newly-created tenant(s):
