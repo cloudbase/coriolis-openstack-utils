@@ -6,14 +6,15 @@ def get_subnet(openstack_client, subnet_id):
     return openstack_client.neutron.find_resource_by_id('subnet', subnet_id)
 
 
-def list_subnets(openstack_client, network_id, name):
+def list_subnets(openstack_client, filters={}):
     return openstack_client.neutron.list_subnets(
-        network_id=network_id, name=name)['subnets']
+        **filters)['subnets']
 
 
 def get_body(openstack_client, src_tenant_id, source_name):
-    src_subnet = openstack_client.neutron.list_subnets(
-        tenant_id=src_tenant_id, name=source_name)['subnets'][0]
+    src_subnet = list_subnets(
+        openstack_client,
+        filters={'tenant_id': src_tenant_id, 'name': source_name})[0]
     body = {
         'ipv6_ra_mode': src_subnet.get('ipv6_ra_mode'),
         'dns_nameservers': src_subnet.get('dns_nameservers'),
