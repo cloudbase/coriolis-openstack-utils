@@ -1,18 +1,17 @@
 # Copyright 2018 Cloudbase Solutions Srl
 # All Rights Reserved.
-import yaml
-import json
-import xlsxwriter
-import math
 
-from oslo_log import log as logging
+import json
+import math
+import xlsxwriter
+import yaml
 
 from cliff.command import Command
+from oslo_log import log as logging
+from oslo_utils import units
 
 from coriolis_openstack_utils import conf
-from coriolis_openstack_utils import constants
-from coriolis_openstack_utils import instances
-from oslo_utils import units
+from coriolis_openstack_utils.resource_utils import instances
 
 
 LOG = logging.getLogger(__name__)
@@ -44,7 +43,7 @@ def write_excel(result_list, file_path):
                     worksheet.write(row, name_col, value)
                 elif key == "source_tenant_name":
                     worksheet.write(row, src_tenant_col, value)
-                    worksheet.write(row, dst_tenant_col, value+"-Migrated")
+                    worksheet.write(row, dst_tenant_col, value + "-Migrated")
                 elif key == "storage":
                     if 'image' in value:
                         image_size = math.ceil(
