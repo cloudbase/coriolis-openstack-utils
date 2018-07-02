@@ -5,9 +5,8 @@ from oslo_log import log as logging
 
 from cliff import lister
 
-from coriolis_openstack_utils import actions
+from coriolis_openstack_utils.actions import coriolis_transfer_actions
 from coriolis_openstack_utils import conf
-from coriolis_openstack_utils import constants
 from coriolis_openstack_utils.cli import formatter
 
 
@@ -72,10 +71,11 @@ class CreateMigrations(lister.Lister):
             "instances": source_vms,
             "batch_name": batch_name,
             "create_tenants": not args.dont_recreate_tenants}
-        batch_migration_action = actions.BatchMigrationAction(
-            source_client, coriolis, migration_payload,
-            destination_openstack_client=destination_client,
-            destination_env=dest_env)
+        batch_migration_action = (
+            coriolis_transfer_actions.BatchMigrationAction(
+                source_client, coriolis, migration_payload,
+                destination_openstack_client=destination_client,
+                destination_env=dest_env))
 
         migrations = []
         done = batch_migration_action.check_already_done()

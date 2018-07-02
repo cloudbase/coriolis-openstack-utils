@@ -1,16 +1,14 @@
 # Copyright 2018 Cloudbase Solutions Srl
 # All Rights Reserved.
 
-import yaml
 import json
-
-from oslo_log import log as logging
+import yaml
 
 from cliff import command
+from oslo_log import log as logging
 
 from coriolis_openstack_utils import conf
-from coriolis_openstack_utils import constants
-from coriolis_openstack_utils import instances
+from coriolis_openstack_utils.resource_utils import instances
 
 
 LOG = logging.getLogger(__name__)
