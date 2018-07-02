@@ -91,6 +91,11 @@ NEW_NETWORK_NAME_OPT = conf.StrOpt(
     help="String format for network names on the destination. "
          "Must contain the format string '%(original)s'. "
          "Example: %(original)s-Migrated")
+NEW_ROUTER_NAME_OPT = conf.StrOpt(
+    "new_router_name_format", required=True,
+    help="String format for router names on the destination. "
+         "Must contain the format string '%(original)s'. "
+         "Example: %(original)s-Migrated")
 
 
 NEW_TENANT_NEUTRON_QUOTAS_OPT = conf.DictOpt(
@@ -117,6 +122,10 @@ NEW_NETWORK_TYPE_OPT = conf.DictOpt(
 NEW_PHYSICAL_NETWORK_OPT = conf.DictOpt(
     "physical_network_mapping", default={},
     help="Mapping between physical networks on source and destination.")
+EXTERNAL_NETWORK_MAP_OPT = conf.DictOpt(
+    "external_network_name_map", default={},
+    help="Mapping between external networks on source and destination.")
+
 
 
 # TODO (aznashwan): determine value of adding extra migration opts:
@@ -127,7 +136,8 @@ DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     NEW_TENANT_NOVA_QUOTAS_OPT, NEW_TENANT_ADMIN_USERS_OPT,
     NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT, NEW_TENANT_SECGROUP_PROTOCOLS_OPT,
     NEW_SECGROUP_NAME_OPT, NEW_SUBNAME_NAME_OPT, NEW_NETWORK_NAME_OPT,
-    NEW_NETWORK_TYPE_OPT, NEW_PHYSICAL_NETWORK_OPT]
+    NEW_NETWORK_TYPE_OPT, NEW_PHYSICAL_NETWORK_OPT, NEW_ROUTER_NAME_OPT,
+    EXTERNAL_NETWORK_MAP_OPT]
 CONF.register_opts(
     DESTINATION_OPTS, constants.DESTINATION_OPT_GROUP_NAME)
 

@@ -7,7 +7,7 @@ from oslo_log import log as logging
 
 from coriolis_openstack_utils import conf
 from coriolis_openstack_utils.actions import base
-from coriolis_openstack_utils.resource_utils import networks, subnets
+from coriolis_openstack_utils.resource_utils import networks, subnets, routers
 
 CONF = conf.CONF
 LOG = logging.getLogger(__name__)
@@ -37,8 +37,8 @@ class SubnetCreationAction(base.BaseAction):
         dest_subnet_name = self.get_new_subnet_name()
 
         conflicting = subnets.list_subnets(
-            self._destination_openstack_client, dest_network_id,
-            dest_subnet_name)
+            self._destination_openstack_client,
+            filters={'network_id': dest_network_id, 'name': dest_subnet_name})
 
         src_subnet = subnets.get_body(
             self._source_openstack_client, src_tenant_id, src_subnet_name)
@@ -90,8 +90,9 @@ class SubnetCreationAction(base.BaseAction):
 
     def get_source_tenant_id(self):
         src_subnet_list = subnets.list_subnets(
-            self._source_openstack_client, self.payload['src_network_id'],
-            self.payload['source_name'])
+            self._source_openstack_client,
+            filters={'network_id': self.payload['src_network_id'],
+                     'name': self.payload['source_name']})
 
         if not src_subnet_list:
             raise Exception("Source Subnet '%s' in network '%s' not found!"
@@ -246,8 +247,8 @@ class NetworkCreationAction(base.BaseAction):
 
         body = networks.create_network_body(
             self._source_openstack_client, self.payload['src_network_id'],
-            self.payload['dest_tenant_id'], self.get_new_network_name(),
-            description)
+            self.payload['dest_tenant_id'],
+            self.get_new_network_name(), description)
 
         dest_network_id = networks.create_network(
             self._destination_openstack_client, body)
@@ -283,3 +284,90 @@ class NetworkCreationAction(base.BaseAction):
             'dest_tenant_id': self.payload['dest_tenant_id']}
 
         return dest_network
+
+
+class RouterCreationAction(base.BaseAction):
+    """ Action class for replicating Neutron routers.
+    param action_payload: dict(): payload (params) for the action
+    must contain 'src_router_id'
+    """
+
+    action_type = base.ACTION_TYPE_CHECK_CREATE_ROUTER
+    NEW_ROUTER_DESCRIPTION_FORMAT = (
+        "Created by the Coriolis OpenStack utilities for source router '%s'.")
+
+    def check_already_done(self):
+        src_router = routers.get_router(
+            self._source_openstack_client, self.payload['src_router_id'])
+        dest_router_name = self.get_new_router_name()
+        conflicting = routers.list_routers(
+            self._destination_openstack_client, {'name': dest_router_name})
+        for dest_router in conflicting:
+            if routers.check_router_similarity(
+                    self._source_openstack_client, src_router,
+                    self._destination_openstack_client, dest_router):
+
+                LOG.info("Found destination router '%s' with same "
+                         "information as source router '%s'."
+                         % (dest_router_name, src_router['name']))
+                return {"done": True, "result": dest_router['id']}
+
+        if len(conflicting) == 1:
+            raise Exception("Found destination router with "
+                            "with name '%s' but different attributes!"
+                            % dest_router_name)
+        elif conflicting:
+            raise Exception("Found multiple destination networks with "
+                            "with name '%s'! Aborting router "
+                            "migration." % dest_router_name)
+
+        return {"done": False, "result": None}
+
+    def equivalent_to(self, other_action):
+        if other_action.action_type == self.action_type:
+            if self.payload['src_router_id'] == (
+                    other_action.payload.get('src_router_id')):
+                return True
+        return False
+
+    def print_operations(self):
+        super(RouterCreationAction, self).print_operations()
+        router_name = self.get_new_router_name()
+        LOG.info(
+            "Create new destination router named '%s'." % router_name)
+
+    def get_source_router_name(self):
+        return routers.get_router(
+            self._source_openstack_client,
+            self.payload['src_router_id'])['name']
+
+    def get_new_router_name(self):
+        return CONF.destination.new_router_name_format % {
+            "original": self.get_source_router_name()}
+
+    def execute_operations(self):
+        super(RouterCreationAction, self).print_operations()
+        done = self.check_already_done()
+        dest_router_name = self.get_new_router_name()
+        if done["done"]:
+            LOG.info(
+                "Router named '%s' already exists.",
+                dest_router_name)
+            return done["result"]
+
+        LOG.info("Creating destination Router with name '%s'" %
+                 dest_router_name)
+
+        migr_info = routers.get_migration_info(
+            self._source_openstack_client, self.payload['src_router_id'])
+        description = (
+            self.NEW_ROUTER_DESCRIPTION_FORMAT % self.get_source_router_name())
+
+        migr_info['migration_body']['description'] = description
+        router_id = routers.create_router(
+            self._destination_openstack_client, migr_info)
+
+        router = routers.get_router(
+            self._destination_openstack_client, router_id)
+
+        return router

@@ -38,6 +38,7 @@ new_tenant_name_format = "%(original)s-Migrated"
 new_secgroup_name_format = "%(original)s-Migrated"
 new_subnet_name_format = "%(original)s-Migrated"
 new_network_name_format = "%(original)s-Migrated"
+new_router_name_format = "%(original)s-Migrated"
 # Format for Endpoint names on source. Must contain the
 # format string '%(tenant)s'. Can optionally contain
 # '%(region)s' and '%(user)s' as well.
@@ -61,6 +62,9 @@ network_map = external: external, yes: no
 # mapping between provider:network_type on source and destination for
 # network migrations (ex: vxlan, vlan, gre)
 # network_type_mapping = source_network_type : destination_network_type
+# mapping between source external networks and destination external networks
+# used for router migrations, if not set, tool assumes same name on destination
+# external_network_name_map = source_ext_net : dest_ext_net
 # storage_map = iscsi1:iscsi2
 
 # Quotas for the newly-created tenant(s):
