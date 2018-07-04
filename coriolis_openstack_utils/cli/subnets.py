@@ -5,10 +5,10 @@ from oslo_log import log as logging
 
 from cliff import lister
 
-from coriolis_openstack_utils import actions
 from coriolis_openstack_utils import conf
+from coriolis_openstack_utils.actions import network_actions
 from coriolis_openstack_utils.cli import formatter
-from coriolis_openstack_utils import networks
+from coriolis_openstack_utils.resource_utils import networks
 
 CONF = conf.CONF
 
@@ -76,7 +76,7 @@ class MigrateSubnet(lister.Lister):
             "src_network_id": src_network_id,
             "dest_network_id": dest_network_id}
 
-        subnet_creation_action = actions.SubnetCreationAction(
+        subnet_creation_action = network_actions.SubnetCreationAction(
             source_client, destination_client, subnet_creation_payload)
 
         done = subnet_creation_action.check_already_done()

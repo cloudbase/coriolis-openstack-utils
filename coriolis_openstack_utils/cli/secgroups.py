@@ -5,8 +5,8 @@ from oslo_log import log as logging
 
 from cliff import lister
 
-from coriolis_openstack_utils.actions import segroup_actions
 from coriolis_openstack_utils import conf
+from coriolis_openstack_utils.actions import secgroup_actions
 from coriolis_openstack_utils.cli import formatter
 from coriolis_openstack_utils.resource_utils import security_groups
 
@@ -81,8 +81,9 @@ class MigrateSecurityGroup(lister.Lister):
             "src_tenant_id": src_tenant_id,
             "dest_tenant_id": dest_tenant_id}
 
-        secgroup_creation_action = segroup_actions.SecurityGroupCreationAction(
-            source_client, destination_client, secgroup_creation_payload)
+        secgroup_creation_action = (
+            secgroup_actions.SecurityGroupCreationAction(
+                source_client, destination_client, secgroup_creation_payload))
 
         done = secgroup_creation_action.check_already_done()
         secgroup = []
