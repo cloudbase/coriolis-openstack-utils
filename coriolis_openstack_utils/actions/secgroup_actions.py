@@ -14,24 +14,17 @@ LOG = logging.getLogger(__name__)
 
 
 class SecurityGroupCreationAction(base.BaseAction):
+    """ Action for creating security groups on the destination.
+    param action_payload: dict(): payload (params) for the action
+    must contain 'src_tenant_id'
+                 'dest_tenant_id'
+                 'source_name'
+    """
+
     action_type = base.ACTION_TYPE_CHECK_CREATE_SECGROUP
     NEW_SECGROUP_DESCRIPTION = (
         "Created by the Coriolis OpenStack utilities for source security group"
         " '%s'.")
-
-    def __init__(self, source_client, destination_client, action_payload):
-        """
-        param action_payload: dict(): payload (params) for the action
-        must contain 'src_tenant_id'
-                     'dest_tenant_id'
-                     'source_name'
-        """
-        # NOTE No openstack_client or coriolis_client
-        super(SecurityGroupCreationAction, self).__init__(
-            None, None, action_payload)
-
-        self._source_client = source_client
-        self._destination_client = destination_client
 
     @property
     def secgroup_name_format(self):
@@ -55,12 +48,12 @@ class SecurityGroupCreationAction(base.BaseAction):
         src_secgroup_name = self.payload['source_name']
 
         dest_secgroups = security_groups.list_security_groups(
-            self._destination_client,
+            self._destination_openstack_client,
             dest_tenant_id,
             filters={'name': dest_secgroup_name})
 
         src_rules = security_groups.get_security_group(
-            self._source_client, tenant_id=src_tenant_id,
+            self._source_openstack_client, tenant_id=src_tenant_id,
             name=src_secgroup_name)['security_group_rules']
 
         found_secgroup_id = None
@@ -135,7 +128,7 @@ class SecurityGroupCreationAction(base.BaseAction):
 
         body = self.create_secgroup_body(description)
         dest_secgroup_id = security_groups.create_security_group(
-            self._destination_client, dest_tenant_id, body)
+            self._destination_openstack_client, dest_tenant_id, body)
 
         LOG.info("Adding source %s rules to destination security group '%s'" %
                  (self.payload['source_name'], dest_secgroup_name))
@@ -144,7 +137,7 @@ class SecurityGroupCreationAction(base.BaseAction):
         src_tenant_id = self.payload['src_tenant_id']
 
         source_secgroup_list = security_groups.list_security_groups(
-            self._source_client, src_tenant_id,
+            self._source_openstack_client, src_tenant_id,
             filters={'name': src_secgroup_name})
 
         if not source_secgroup_list:
@@ -162,7 +155,7 @@ class SecurityGroupCreationAction(base.BaseAction):
                 dest_secgroup_id, src_rules))
 
         prev_dest_rules = security_groups.get_security_group(
-            self._destination_client, dest_tenant_id,
+            self._destination_openstack_client, dest_tenant_id,
             dest_secgroup_name)['security_group_rules']
 
         # Removing conflicting rules
@@ -181,13 +174,14 @@ class SecurityGroupCreationAction(base.BaseAction):
                               "source %s" % new_rule)
 
         security_groups.add_rules_to_secgroup(
-            dest_secgroup_name, dest_rules, self._destination_client)
+            dest_secgroup_name, dest_rules, self._destination_openstack_client)
 
         dest_secgroup = {
             'destination_name': dest_secgroup_name,
             'destination_id': dest_secgroup_id,
             'dest_tenant_id': dest_tenant_id,
-            'dest_tenant_name': self._destination_client.get_project_name(
-                dest_tenant_id)}
+            'dest_tenant_name':
+                self._destination_openstack_client.get_project_name(
+                    dest_tenant_id)}
 
         return dest_secgroup

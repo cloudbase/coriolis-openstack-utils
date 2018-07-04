@@ -42,12 +42,16 @@ class SourceEndpointCreationAction(base.BaseAction):
     def endpoint_name_format(self):
         return CONF.source.endpoint_name_format
 
+    @property
+    def connection_info(self):
+        return self._source_openstack_client.connection_info
+
     def get_tenant_name(self):
         return self.tenant_name_format % {
             "original": self.payload["instance_tenant_name"]}
 
     def get_endpoint_name(self):
-        connection_info = self._openstack_client.connection_info
+        connection_info = self.connection_info
         return self.endpoint_name_format % {
             "region": connection_info.get(
                 "region_name", DEFAULT_REGION_NAME),
@@ -69,7 +73,7 @@ class SourceEndpointCreationAction(base.BaseAction):
     def print_operations(self):
         super(SourceEndpointCreationAction, self).print_operations()
         tenant_name = self.get_tenant_name()
-        connection_info = self._openstack_client.connection_info
+        connection_info = self.connection_info
         host_auth_url = connection_info["auth_url"]
         endpoint_name = self.get_endpoint_name()
 
@@ -81,8 +85,7 @@ class SourceEndpointCreationAction(base.BaseAction):
 
     def check_already_done(self):
         super(SourceEndpointCreationAction, self).execute_operations()
-        connection_info = copy.deepcopy(
-            self._openstack_client.connection_info)
+        connection_info = copy.deepcopy(self.connection_info)
         # override the con info with the right one:
         tenant_name = self.get_tenant_name()
         connection_info["project_name"] = tenant_name
@@ -124,8 +127,7 @@ class SourceEndpointCreationAction(base.BaseAction):
         if done["done"]:
             return done["result"]
 
-        connection_info = copy.deepcopy(
-            self._openstack_client.connection_info)
+        connection_info = copy.deepcopy(self.connection_info)
         tenant_name = self.get_tenant_name()
         connection_info["project_name"] = tenant_name
 
@@ -154,3 +156,7 @@ class DestinationEndpointCreationAction(SourceEndpointCreationAction):
     @property
     def endpoint_name_format(self):
         return CONF.destination.endpoint_name_format
+
+    @property
+    def connection_info(self):
+        return self._destination_openstack_client.connection_info

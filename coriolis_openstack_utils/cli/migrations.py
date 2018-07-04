@@ -73,9 +73,9 @@ class CreateMigrations(lister.Lister):
             "create_tenants": not args.dont_recreate_tenants}
         batch_migration_action = (
             coriolis_transfer_actions.BatchMigrationAction(
-                source_client, coriolis, migration_payload,
+                migration_payload, source_openstack_client=source_client,
                 destination_openstack_client=destination_client,
-                destination_env=dest_env))
+                coriolis_client=coriolis, destination_env=dest_env))
 
         migrations = []
         done = batch_migration_action.check_already_done()
