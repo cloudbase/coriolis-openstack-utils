@@ -83,7 +83,9 @@ class MigrateSecurityGroup(lister.Lister):
 
         secgroup_creation_action = (
             secgroup_actions.SecurityGroupCreationAction(
-                source_client, destination_client, secgroup_creation_payload))
+                secgroup_creation_payload,
+                source_openstack_client=source_client,
+                destination_openstack_client=destination_client))
 
         done = secgroup_creation_action.check_already_done()
         secgroup = []

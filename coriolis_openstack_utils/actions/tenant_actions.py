@@ -40,7 +40,8 @@ class TenantCreationAction(base.BaseAction):
             - nova/instances -- set to -1 (unlimited)
         """
         tenant_name = self.get_new_tenant_name()
-        tenant_id = self._openstack_client.get_project_id(tenant_name)
+        tenant_id = self._destination_openstack_client.get_project_id(
+            tenant_name)
 
         # update Neutron quotas:
         neutron_quotas = CONF.destination.new_tenant_neutron_quotas
@@ -49,7 +50,7 @@ class TenantCreationAction(base.BaseAction):
         LOG.info(
             "Adding Neutron quotas for tenant '%s': %s",
             tenant_name, updated_neutron_quotas)
-        self._openstack_client.neutron.update_quota(
+        self._destination_openstack_client.neutron.update_quota(
             tenant_id, body={"quota": updated_neutron_quotas})
 
         # update Cinder quotas:
@@ -59,7 +60,7 @@ class TenantCreationAction(base.BaseAction):
         LOG.info(
             "Adding Cinder quotas for tenant '%s': %s",
             tenant_name, updated_cinder_quotas)
-        self._openstack_client.cinder.quotas.update(
+        self._destination_openstack_client.cinder.quotas.update(
             tenant_id, **updated_cinder_quotas)
 
         # update Nova quotas:
@@ -69,18 +70,18 @@ class TenantCreationAction(base.BaseAction):
         LOG.info(
             "Adding Nova quotas for tenant '%s': %s",
             tenant_name, updated_nova_quotas)
-        self._openstack_client.nova.quotas.update(
+        self._destination_openstack_client.nova.quotas.update(
             tenant_id, **updated_nova_quotas)
 
     def _allow_secgroup_traffic(self):
         tenant_name = self.get_new_tenant_name()
-        tenant_id = self._openstack_client.get_project_id(
+        tenant_id = self._destination_openstack_client.get_project_id(
             tenant_name)
 
         # NOTE: in order to see the new secgroup we must use the
         # right tenant name:
         new_connection_info = copy.deepcopy(
-            self._openstack_client.connection_info)
+            self._destination_openstack_client.connection_info)
         new_connection_info["project_name"] = tenant_name
         new_client = openstack_client.OpenStackClient(new_connection_info)
 
@@ -142,7 +143,7 @@ class TenantCreationAction(base.BaseAction):
     def check_already_done(self):
         tenant_name = self.get_new_tenant_name()
 
-        for tenant in self._openstack_client.list_project_names():
+        for tenant in self._destination_openstack_client.list_project_names():
             if tenant == tenant_name:
                 LOG.debug("Tenant with name '%s' already exists. Skipping." % (
                     tenant_name))
@@ -164,22 +165,24 @@ class TenantCreationAction(base.BaseAction):
 
         description = self.NEW_PROJECT_DESCRIPTION % original_tenant_name
         LOG.info("Creating destination tenant with name '%s'" % tenant_name)
-        new_project_id = self._openstack_client.create_project(
+        new_project_id = self._destination_openstack_client.create_project(
             tenant_name, description)
 
         LOG.info(
             "Waiting for creation of destination tenant '%s'.", tenant_name)
         # NOTE: depending on the destination OpenStack setup, the above tenant
         # might not be immediately visible, so we must wait for it:
-        self._openstack_client.wait_for_project_creation(tenant_name)
+        self._destination_openstack_client.wait_for_project_creation(
+            tenant_name)
 
         # add user roles:
         LOG.info("Adding admin user(s) to new tenant '%s'", tenant_name)
-        users = [self._openstack_client.connection_info["username"]]
+        users = [self._destination_openstack_client.connection_info[
+            "username"]]
         users.extend(
             CONF.destination.new_tenant_admin_users)
         for user in users:
-            self._openstack_client.add_admin_role_to_project(
+            self._destination_openstack_client.add_admin_role_to_project(
                 tenant_name, user,
                 admin_role_name=CONF.destination.admin_role_name)
 

@@ -24,17 +24,18 @@ class MigrationCreationAction(base.BaseAction):
     action_type = base.ACTION_TYPE_CHECK_CREATE_MIGRATION
 
     def __init__(
-            self, source_openstack_client, coriolis_client,
-            action_payload, destination_openstack_client=None,
+            self, action_payload, source_openstack_client=None,
+            coriolis_client=None, destination_openstack_client=None,
             destination_env=None, create_tenant=False):
         """
         param action_payload: dict(): instance_info dict (prevalidated!)
 
         self.subactions are not meant to be executed!
         """
-        # NOTE: no client passed to super()
         super(MigrationCreationAction, self).__init__(
-            None, coriolis_client, action_payload)
+            action_payload, source_openstack_client=source_openstack_client,
+            destination_openstack_client=destination_openstack_client,
+            coriolis_client=coriolis_client)
         if not destination_openstack_client:
             raise ValueError(
                 "Destination openstack client required to migrate.")
@@ -42,17 +43,17 @@ class MigrationCreationAction(base.BaseAction):
             raise ValueError(
                 "Destination environment required to migrate.")
 
-        self._source_client = source_openstack_client
         self._destination_env = destination_env
-        self._destination_client = destination_openstack_client
 
         self.source_endpoint_create_action = (
             coriolis_endpoint_actions.SourceEndpointCreationAction(
-                self._source_client, self._coriolis_client, self.payload))
+                self.payload, coriolis_client=self._coriolis_client,
+                source_openstack_client=self._source_openstack_client))
         self.dest_endpoint_create_action = (
             coriolis_endpoint_actions.DestinationEndpointCreationAction(
-                self._destination_client, self._coriolis_client,
-                self.payload))
+                self.payload, coriolis_client=self._coriolis_client,
+                destination_openstack_client=(
+                    self._destination_openstack_client)))
 
         self.subactions = [
             self.source_endpoint_create_action,
@@ -63,8 +64,9 @@ class MigrationCreationAction(base.BaseAction):
         if create_tenant:
             self.dest_tenant_create_action = (
                 tenant_actions.TenantCreationAction(
-                    self._destination_client, self._coriolis_client,
-                    self.payload))
+                    self.payload, destination_openstack_client=(
+                        self._destination_openstack_client),
+                    coriolis_client=self._coriolis_client))
             self.subactions.insert(0, self.dest_tenant_create_action)
 
     def equivalent_to(self, other_action):
@@ -215,8 +217,8 @@ class BatchMigrationAction(base.BaseAction):
     DEFAULT_BATCH_NAME = "CoriolisMigrationBatch"
 
     def __init__(
-            self, source_openstack_client, coriolis_client,
-            action_payload, destination_openstack_client=None,
+            self, action_payload, source_openstack_client=None,
+            coriolis_client=None, destination_openstack_client=None,
             destination_env=None):
         """
         param action_payload: dict(): dict of the form: {
@@ -226,19 +228,24 @@ class BatchMigrationAction(base.BaseAction):
         }
         """
         super(BatchMigrationAction, self).__init__(
-            None, coriolis_client, action_payload)
+            action_payload, source_openstack_client=source_openstack_client,
+            coriolis_client=coriolis_client,
+            destination_openstack_client=destination_openstack_client)
 
-        if not destination_openstack_client:
+        if not self._source_openstack_client:
             raise ValueError(
-                "Destination openstack client required to migrate.")
+                "Source OpenStack client required to migrate.")
+        if not self._destination_openstack_client:
+            raise ValueError(
+                "Destination OpenStack client required to migrate.")
         if not destination_env:
             raise ValueError(
                 "Destination environment required to migrate.")
 
         self._create_tenants = self.payload.get("create_tenants", False)
-        self._source_client = source_openstack_client
+        self._source_openstack_client = source_openstack_client
         self._destination_env = destination_env
-        self._destination_client = destination_openstack_client
+        self._destination_openstack_client = destination_openstack_client
         self._batch_name = self.payload.get(
             "batch_name", self.DEFAULT_BATCH_NAME)
 
@@ -248,7 +255,7 @@ class BatchMigrationAction(base.BaseAction):
 
         LOG.info("Gathering info on selected VMs.")
         vm_infos = instances.find_source_instances_by_name(
-            self._source_client, vm_names)
+            self._source_openstack_client, vm_names)
 
         # instantiate all the migration subactions:
         self._completed_migrations = []
@@ -257,11 +264,14 @@ class BatchMigrationAction(base.BaseAction):
             LOG.info(
                 "Validating configuration for VM: \"%s\"", instance_name)
             instances.validate_migration_options(
-                self._source_client, self._destination_client,
+                self._source_openstack_client,
+                self._destination_openstack_client,
                 vm_info, self._destination_env)
             subaction = MigrationCreationAction(
-                self._source_client, self._coriolis_client, vm_info,
-                destination_openstack_client=self._destination_client,
+                vm_info, source_openstack_client=self._source_openstack_client,
+                coriolis_client=self._coriolis_client,
+                destination_openstack_client=(
+                    self._destination_openstack_client),
                 destination_env=self._destination_env,
                 create_tenant=self._create_tenants)
             done = subaction.check_already_done()
