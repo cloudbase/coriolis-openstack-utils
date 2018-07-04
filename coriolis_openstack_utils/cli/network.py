@@ -78,12 +78,14 @@ class MigrateNetwork(lister.Lister):
         else:
             dest_tenant_id = args.dest_tenant_id
 
-        subnet_creation_payload = {
+        network_creation_payload = {
             "src_network_id": src_network_id,
             "dest_tenant_id": dest_tenant_id}
 
         network_creation_action = network_actions.NetworkCreationAction(
-            source_client, destination_client, subnet_creation_payload)
+            network_creation_payload,
+            source_openstack_client=source_client,
+            destination_openstack_client=destination_client)
 
         done = network_creation_action.check_already_done()
         if done["done"]:

@@ -32,12 +32,25 @@ class BaseAction(object, with_metaclass(abc.ABCMeta)):
     def action_type(self):
         pass
 
-    def __init__(self, openstack_client, coriolis_client, action_payload):
+    def __init__(
+            self, action_payload, source_openstack_client=None,
+            destination_openstack_client=None, coriolis_client=None):
         """
-        param action_client: type of client needed for the action
         param action_payload: dict(): payload (params) for the action
+        param source_openstack_client: OpenStackClient: OpenStackClient
+        instance for the source platform.
+        param destination_openstack_client: OpenStackClient: OpenStackClient
+        instance for the destination platform.
+        param coriolis_client: coriolisclient.Client: Coriolis client instance
         """
-        self._openstack_client = openstack_client
+        if not any([source_openstack_client, destination_openstack_client,
+                    coriolis_client]):
+            raise ValueError(
+                "At least one of 'coriolis_client', 'source_openstack_client',"
+                " or 'destination_openstack_client' must be provided.")
+
+        self._source_openstack_client = source_openstack_client
+        self._destination_openstack_client = destination_openstack_client
         self._coriolis_client = coriolis_client
         self.payload = action_payload
         self.subactions = []
