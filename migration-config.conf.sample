@@ -39,6 +39,9 @@ new_secgroup_name_format = "%(original)s-Migrated"
 new_subnet_name_format = "%(original)s-Migrated"
 new_network_name_format = "%(original)s-Migrated"
 new_router_name_format = "%(original)s-Migrated"
+new_user_name_format = "%(original)s"
+# Default password for newly-migrated users
+new_user_password = <new_user_password>
 # Format for Endpoint names on source. Must contain the
 # format string '%(tenant)s'. Can optionally contain
 # '%(region)s' and '%(user)s' as well.
