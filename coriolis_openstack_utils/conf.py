@@ -93,7 +93,10 @@ NEW_NETWORK_NAME_OPT = conf.StrOpt(
          "Example: %(original)s-Migrated")
 NEW_ROUTER_NAME_OPT = conf.StrOpt(
     "new_router_name_format", required=True,
-    help="String format for router names on the destination. "
+    help="String format for router names on the destination. ")
+NEW_USER_NAME_OPT = conf.StrOpt(
+    "new_user_name_format", required=True,
+    help="String format for user names on the destination. "
          "Must contain the format string '%(original)s'. "
          "Example: %(original)s-Migrated")
 
@@ -125,7 +128,9 @@ NEW_PHYSICAL_NETWORK_OPT = conf.DictOpt(
 EXTERNAL_NETWORK_MAP_OPT = conf.DictOpt(
     "external_network_name_map", default={},
     help="Mapping between external networks on source and destination.")
-
+NEW_USERS_PASSWORD_OPT = conf.StrOpt(
+    "new_users_password",
+    help="Default password for newly-migrated users.")
 
 
 # TODO (aznashwan): determine value of adding extra migration opts:
@@ -137,7 +142,7 @@ DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT, NEW_TENANT_SECGROUP_PROTOCOLS_OPT,
     NEW_SECGROUP_NAME_OPT, NEW_SUBNAME_NAME_OPT, NEW_NETWORK_NAME_OPT,
     NEW_NETWORK_TYPE_OPT, NEW_PHYSICAL_NETWORK_OPT, NEW_ROUTER_NAME_OPT,
-    EXTERNAL_NETWORK_MAP_OPT]
+    EXTERNAL_NETWORK_MAP_OPT, NEW_USER_NAME_OPT, NEW_USERS_PASSWORD_OPT]
 CONF.register_opts(
     DESTINATION_OPTS, constants.DESTINATION_OPT_GROUP_NAME)
 

@@ -11,6 +11,7 @@ from oslo_log import log as logging
 from coriolis_openstack_utils import conf
 from coriolis_openstack_utils import openstack_client
 from coriolis_openstack_utils.actions import base
+from coriolis_openstack_utils.resource_utils import users
 
 CONF = conf.CONF
 LOG = logging.getLogger(__name__)
@@ -194,3 +195,82 @@ class TenantCreationAction(base.BaseAction):
             self._allow_secgroup_traffic()
 
         return new_project_id
+
+
+class UserCreationAction(base.BaseAction):
+    """ Action for managing the creation of a user. """
+
+    action_type = base.ACTION_TYPE_CHECK_CREATE_USER
+
+    @property
+    def user_name_format(self):
+        return CONF.destination.new_user_name_format
+
+    def get_source_user_name(self):
+        return users.get_user(
+            self._source_openstack_client, self.payload['src_user_id']).name
+
+    def get_new_user_name(self):
+        return self.user_name_format % {
+            "original": self.get_source_user_name()}
+
+    def print_operations(self):
+        super(UserCreationAction, self).print_operations()
+        user_name = self.get_new_user_name()
+        LOG.info(
+            "Create new destination user named '%s' "
+            % user_name)
+
+    def equivalent_to(self, other_action):
+        if other_action.action_type == self.action_type:
+            if self.payload["src_user_id"] == (
+                    other_action.payload.get("src_user_id")):
+                return True
+
+        return False
+
+    def check_already_done(self):
+        user_name = self.get_new_user_name()
+
+        for user in users.list_users(self._destination_openstack_client,
+                                     filters={'name': user_name}):
+            if user.name == user_name:
+                LOG.debug("User with name '%s' already exists. Skipping." % (
+                    user_name))
+                return {"done": True, "result": user.id}
+        return {"done": False, "result": None}
+
+    def execute_operations(self):
+        super(UserCreationAction, self).print_operations()
+        user_name = self.get_new_user_name()
+
+        done = self.check_already_done()
+        if done["done"]:
+            LOG.info(
+                "User named '%s' already exists.",
+                user_name)
+            return done["result"]
+
+        LOG.info("Creating destination user with name '%s'" % user_name)
+        src_body = users.get_body(
+            self._source_openstack_client, self.payload['src_user_id'])
+        src_body['name'] = user_name
+        user_id = users.create_user(
+            self._destination_openstack_client, src_body)
+        LOG.info("Created user with id '%s'" % user_id)
+        dest_admin_tenants = self.payload.get('admin_role_tenants', False)
+        if not dest_admin_tenants:
+            # if there are no explicit admin roles set, setting the ones
+            # that were on the source projects, but with
+            # the new_project_name_format
+            src_tenant_names = users.get_user_admin_tenants(
+                self._source_openstack_client, self.payload['src_user_id'])
+            dest_admin_tenants = [CONF.destination.new_tenant_name_format %
+                                  {'original': tenant_name} for
+                                  tenant_name in src_tenant_names]
+        users.add_admin_roles(
+            self._destination_openstack_client, user_name, dest_admin_tenants)
+
+        return {'id': user_id,
+                'name': user_name,
+                'tenants': dest_admin_tenants}
