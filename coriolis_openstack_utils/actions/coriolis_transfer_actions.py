@@ -10,7 +10,6 @@ from coriolis_openstack_utils import conf
 from coriolis_openstack_utils import utils
 from coriolis_openstack_utils.actions import base
 from coriolis_openstack_utils.actions import coriolis_endpoint_actions
-from coriolis_openstack_utils.actions import tenant_actions
 from coriolis_openstack_utils.resource_utils import instances
 
 CONF = conf.CONF
@@ -26,7 +25,7 @@ class MigrationCreationAction(base.BaseAction):
     def __init__(
             self, action_payload, source_openstack_client=None,
             coriolis_client=None, destination_openstack_client=None,
-            destination_env=None, create_tenant=False):
+            destination_env=None):
         """
         param action_payload: dict(): instance_info dict (prevalidated!)
 
@@ -59,16 +58,6 @@ class MigrationCreationAction(base.BaseAction):
             self.source_endpoint_create_action,
             self.dest_endpoint_create_action]
 
-        self._create_tenant = create_tenant
-        self.dest_tenant_create_action = None
-        if create_tenant:
-            self.dest_tenant_create_action = (
-                tenant_actions.TenantCreationAction(
-                    self.payload, destination_openstack_client=(
-                        self._destination_openstack_client),
-                    coriolis_client=self._coriolis_client))
-            self.subactions.insert(0, self.dest_tenant_create_action)
-
     def equivalent_to(self, other_action):
         if self.action_type == other_action.action_type:
             if utils.check_dict_equals(self.payload, other_action.payload):
@@ -84,15 +73,6 @@ class MigrationCreationAction(base.BaseAction):
             self.source_endpoint_create_action.check_already_done())
         destination_endpoint_done = (
             self.dest_endpoint_create_action.check_already_done())
-
-        if self._create_tenant:
-            dest_tenant_done = (
-                self.dest_tenant_create_action.check_already_done())
-            if not dest_tenant_done["done"]:
-                LOG.debug(
-                    "Destination tenant for migration for VM '%s' not done.",
-                    instance_name)
-                return done
 
         if not source_endpoint_done["done"]:
             LOG.debug(
@@ -160,12 +140,6 @@ class MigrationCreationAction(base.BaseAction):
         if not subtasks_pre_executed:
             # NOTE: only calls super() when subtasks aren't executed
             super(MigrationCreationAction, self).print_operations()
-
-        if self._create_tenant:
-            tenant_done = self.dest_tenant_create_action.check_already_done()
-            if not tenant_done["done"]:
-                raise Exception(
-                    "Tenant not done for instance: %s" % self.payload)
 
         source_endpoint_done = (
             self.source_endpoint_create_action.check_already_done())
@@ -272,8 +246,7 @@ class BatchMigrationAction(base.BaseAction):
                 coriolis_client=self._coriolis_client,
                 destination_openstack_client=(
                     self._destination_openstack_client),
-                destination_env=self._destination_env,
-                create_tenant=self._create_tenants)
+                destination_env=self._destination_env)
             done = subaction.check_already_done()
             if done["done"]:
                 migr_instance_name = subaction.payload["instance_name"]

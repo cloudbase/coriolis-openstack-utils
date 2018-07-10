@@ -233,3 +233,8 @@ def get_migration_assessment(source_client, coriolis, migration_id):
         assessment["migration"]["previous_migrations"] = previous_migration_ids
 
     return assessment_list
+
+
+def list_instances(openstack_client, filters={}):
+    filters['all_tenants'] = True
+    return openstack_client.nova.servers.list(search_opts=filters)
