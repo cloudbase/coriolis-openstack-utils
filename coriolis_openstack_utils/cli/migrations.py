@@ -39,13 +39,6 @@ class MigrationFormatter(formatter.EntityFormatter):
 class CreateMigrations(lister.Lister):
     def get_parser(self, prog_name):
         parser = super(CreateMigrations, self).get_parser(prog_name)
-
-        parser.add_argument(
-            "--dont-recreate-tenants",
-            dest="dont_recreate_tenants", default=False, action="store_true",
-            help="Whether or not to use existing tenants on the destination, "
-                 "or attempt to create a new corrresponding one for each "
-                 "source tenant.")
         parser.add_argument(
             "--batch-name", dest="batch_name",
             default="MigrationBatch",
@@ -69,8 +62,7 @@ class CreateMigrations(lister.Lister):
         batch_name = args.batch_name
         migration_payload = {
             "instances": source_vms,
-            "batch_name": batch_name,
-            "create_tenants": not args.dont_recreate_tenants}
+            "batch_name": batch_name}
         batch_migration_action = (
             coriolis_transfer_actions.BatchMigrationAction(
                 migration_payload, source_openstack_client=source_client,

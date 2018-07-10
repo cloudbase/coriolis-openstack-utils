@@ -11,6 +11,13 @@ from oslo_log import log as logging
 from coriolis_openstack_utils import conf
 from coriolis_openstack_utils import openstack_client
 from coriolis_openstack_utils.actions import base
+from coriolis_openstack_utils.actions import coriolis_transfer_actions
+from coriolis_openstack_utils.actions import network_actions
+from coriolis_openstack_utils.actions import secgroup_actions
+from coriolis_openstack_utils.resource_utils import instances
+from coriolis_openstack_utils.resource_utils import networks
+from coriolis_openstack_utils.resource_utils import routers
+from coriolis_openstack_utils.resource_utils import security_groups
 from coriolis_openstack_utils.resource_utils import users
 
 CONF = conf.CONF
@@ -30,7 +37,7 @@ class TenantCreationAction(base.BaseAction):
 
     def get_new_tenant_name(self):
         return self.tenant_name_format % {
-            "original": self.payload["instance_tenant_name"]}
+            "original": self.payload["tenant_name"]}
 
     def _update_tenant_quotas(self):
         """ Updates all tenant quotas necessary for the migration.
@@ -127,8 +134,8 @@ class TenantCreationAction(base.BaseAction):
 
     def equivalent_to(self, other_action):
         if other_action.action_type == self.action_type:
-            if self.payload["instance_tenant_name"] == (
-                    other_action.payload.get("instance_tenant_name")):
+            if self.payload["tenant_name"] == (
+                    other_action.payload.get("tenant_name")):
                 return True
 
         return False
@@ -153,7 +160,7 @@ class TenantCreationAction(base.BaseAction):
 
     def execute_operations(self):
         super(TenantCreationAction, self).print_operations()
-        original_tenant_name = self.payload["instance_tenant_name"]
+        original_tenant_name = self.payload["tenant_name"]
         tenant_name = self.get_new_tenant_name()
 
         done = self.check_already_done()
@@ -274,3 +281,149 @@ class UserCreationAction(base.BaseAction):
         return {'id': user_id,
                 'name': user_name,
                 'tenants': dest_admin_tenants}
+
+
+class WholeTenantCreationAction(TenantCreationAction):
+    """  Action for managing the migration of a tenant and all the resources
+    within it.
+        action_payload must contain:
+            'tenant_name'
+            'instances': None: no instances will be migrated.
+                         ['vm1','vm2']: instances named 'vm1' and 'vm2'
+                                         will be migrated.
+                         []: all instances will be migrated.
+    """
+    def __init__(
+            self, action_payload, source_openstack_client=None,
+            coriolis_client=None, destination_openstack_client=None,
+            destination_env=None):
+        super(WholeTenantCreationAction, self).__init__(
+            action_payload, source_openstack_client=source_openstack_client,
+            coriolis_client=coriolis_client,
+            destination_openstack_client=destination_openstack_client)
+        self._migration_prep_subactions = []
+
+    def print_operations(self):
+        super(WholeTenantCreationAction, self).print_operations()
+        LOG.info("Create new destination tenant named '%s' "
+                 "alongside its security_groups, networks and routers."
+                 % self.get_new_tenant_name())
+
+    def execute_operations(self):
+        dest_tenant_id = super(
+            WholeTenantCreationAction, self).execute_operations()
+        src_tenant_id = self._destination_openstack_client.get_project_id(
+            self.payload['tenant_name'])
+
+        src_tenant_networks = [
+            network['id'] for network in
+            networks.list_networks(self._source_openstack_client,
+                                   src_tenant_id)]
+
+        for net_id in src_tenant_networks:
+            network_migration_action = network_actions.NetworkCreationAction(
+                {'src_network_id': net_id, 'dest_tenant_id': dest_tenant_id},
+                source_openstack_client=self._source_openstack_client,
+                destination_openstack_client=self._destination_openstack_client
+                )
+            self.subactions.append(network_migration_action)
+        src_tenant_routers = [
+            router['id'] for router in routers.list_routers(
+                self._source_openstack_client, filters={
+                    'project_id': src_tenant_id, 'tenant_id': src_tenant_id})]
+
+        for router_id in src_tenant_routers:
+            router_migration_action = network_actions.RouterCreationAction(
+                {'src_router_id': router_id},
+                source_openstack_client=self._source_openstack_client,
+                destination_openstack_client=self._destination_openstack_client
+                )
+            self.subactions.append(router_migration_action)
+
+        src_secgroup_names = [
+            secgroup['name'] for secgroup in
+            security_groups.list_security_groups(
+                self._source_openstack_client, src_tenant_id)]
+
+        for secgroup_name in src_secgroup_names:
+            secgroup_action = secgroup_actions.SecurityGroupCreationAction(
+                {'src_tenant_id': src_tenant_id,
+                 'dest_tenant_id': dest_tenant_id,
+                 'source_name': secgroup_name},
+                source_openstack_client=self._source_openstack_client,
+                destination_openstack_client=self._destination_openstack_client
+                )
+            self.subactions.append(secgroup_action)
+        # if payload['instances'] is None, no VMs are migrated.
+        instance_list = []
+        if self.payload['instances'] == []:
+            instance_list = [instance for instance in instances.list_instances(
+                self._source_openstack_client,
+                filters={'tenant_id': src_tenant_id})]
+        elif self.payload['instances'] is not None:
+            instance_list = [
+                instance for instance in instances.list_instances(
+                    self._source_openstack_client,
+                    filters={'tenant_id': src_tenant_id})
+                if instance.name in self.payload['instances']]
+            found_instances = [instance.name for instance in instance_list]
+            not_found_instances = (set(self.payload['instances']) -
+                                   set(found_instances))
+            if not_found_instances != set():
+                raise Exception(
+                    "Instances not found from list %s" % not_found_instances)
+
+        for instance in instance_list:
+            src_secgroups = [secgroup['name'] for secgroup in
+                             getattr(instance, 'security_groups', [])]
+            dest_secgroups = [CONF.destination.new_secgroup_name_format %
+                              {'original': secgroup_name} for
+                              secgroup_name in src_secgroups]
+
+            dest_net_map = {src_net: (
+                CONF.destination.new_network_name_format %
+                {'original': src_net}) for src_net in
+                            instance.networks.keys()}
+
+            dest_target_migr_env = {'network_map': dest_net_map,
+                                    'security_groups': dest_secgroups}
+            instance_migration_action = (
+                coriolis_transfer_actions.MigrationCreationAction(
+                    {'instance_name': instance.name,
+                     'instance_tenant_name':
+                     self.payload['tenant_name']},
+                    source_openstack_client=self._source_openstack_client,
+                    destination_openstack_client=(
+                        self._destination_openstack_client),
+                    destination_env=dest_target_migr_env,
+                    coriolis_client=self._coriolis_client))
+            self.subactions.append(instance_migration_action)
+
+        for migration_action in self.subactions:
+            new_migration_subactions = []
+            for action in migration_action.subactions:
+                action_done = action.check_already_done()
+                if action_done["done"]:
+                    LOG.info("Action already done: ")
+                    action.print_operations()
+                    continue
+
+                if not [existing
+                        for existing in self._migration_prep_subactions
+                        if action.equivalent_to(existing)]:
+                    new_migration_subactions.append(action)
+                    self._migration_prep_subactions.append(action)
+                else:
+                    LOG.info("Skipping action: ")
+                    action.print_operations()
+            # NOTE: we eliminate the unneeded action:
+            migration_action.subactions = new_migration_subactions
+
+        for action in self._migration_prep_subactions:
+            action.execute_operations()
+
+        for action in self.subactions:
+            action.execute_operations()
+
+        return {'name': self.get_new_tenant_name(),
+                'id': dest_tenant_id}
