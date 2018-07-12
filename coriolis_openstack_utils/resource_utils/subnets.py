@@ -1,6 +1,10 @@
 # Copyright 2018 Cloudbase Solutions Srl
 # All Rights Reserved.
 
+from oslo_log import log as logging
+
+LOG = logging.getLogger(__name__)
+
 
 def get_subnet(openstack_client, subnet_id):
     return openstack_client.neutron.find_resource_by_id('subnet', subnet_id)
@@ -57,3 +61,17 @@ def check_subnet_similarity(src_subnet, dest_subnet):
     src_relevant_keys = set(src_subnet.keys()).intersection(relevant_keys)
 
     return len(src_relevant_keys) == len(conflict_keys)
+
+
+def delete_subnet(openstack_client, network_id, name):
+    src_subnets = list_subnets(
+        openstack_client, filters={'network_id': network_id, 'name': name})
+    len_src_subnets = len(src_subnets)
+    if len_src_subnets == 1:
+        openstack_client.neutron.delete_subnet(src_subnets[0]['id'])
+    elif len_src_subnets == 0:
+        LOG.info("Deleting subnet with name '%s' in network '%s' "
+                 "failed.Subnet not found." % (name, network_id))
+    elif len_src_subnets > 1:
+        LOG.info("Deleting subnet with name '%s' in network '%s' "
+                 "failed. Multiple subnets found." % (name, network_id))

@@ -185,3 +185,8 @@ class SecurityGroupCreationAction(base.BaseAction):
                     dest_tenant_id)}
 
         return dest_secgroup
+
+    def cleanup(self):
+        security_groups.delete_secgroup(
+            self._destination_openstack_client,
+            self.payload['dest_tenant_id'], self.get_new_secgroup_name())

@@ -95,7 +95,13 @@ class MigrateTenant(lister.Lister):
                 'id': destination_client.get_project_id(done["result"])}
         else:
             if args.not_drill:
-                tenant = tenant_creation_action.execute_operations()
+                try:
+                    tenant = tenant_creation_action.execute_operations()
+                except Exception as action_exception:
+                    LOG.warn("Error occured while recreating source tenant "
+                             "'%s'. Rolling back changes", src_tenant_name)
+                    tenant_creation_action.cleanup()
+                    raise action_exception
             else:
                 tenant_creation_action.print_operations()
                 tenant = {

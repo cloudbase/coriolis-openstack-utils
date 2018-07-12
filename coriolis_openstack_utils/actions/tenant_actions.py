@@ -203,6 +203,13 @@ class TenantCreationAction(base.BaseAction):
 
         return new_project_id
 
+    def cleanup(self):
+        for action in self.subactions:
+            action.cleanup()
+
+        self._destination_openstack_client.delete_project_by_name(
+            self.get_new_tenant_name())
+
 
 class UserCreationAction(base.BaseAction):
     """ Action for managing the creation of a user. """
@@ -281,6 +288,17 @@ class UserCreationAction(base.BaseAction):
         return {'id': user_id,
                 'name': user_name,
                 'tenants': dest_admin_tenants}
+
+    def cleanup(self):
+        user_list = users.list_users(
+            self._destination_openstack_client,
+            filters={'name': self.get_new_user_name()})
+        user_list_length = len(user_list)
+        if user_list_length == 1:
+            self._destination_openstack_client.keystone.users.delete(
+                user_list[0].id)
+            LOG.info("Successfully deleted user '%s' on destination"
+                     % self.get_new_user_name())
 
 
 class WholeTenantCreationAction(TenantCreationAction):
@@ -428,3 +446,9 @@ class WholeTenantCreationAction(TenantCreationAction):
 
         return {'name': self.get_new_tenant_name(),
                 'id': dest_tenant_id}
+
+    def cleanup(self):
+        for action in self.subactions:
+            action.cleanup()
+        self._destination_openstack_client.delete_project_by_name(
+            self.get_new_tenant_name())

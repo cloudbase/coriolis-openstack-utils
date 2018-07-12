@@ -17,6 +17,7 @@ LOG = logging.getLogger(__name__)
 
 MIGRATION_STATUS_ERROR = "ERROR"
 MIGRATION_STATUS_COMPLETED = "COMPLETED"
+MIGRATION_STATUS_RUNNING = "RUNNING"
 
 
 class MigrationCreationAction(base.BaseAction):
@@ -182,6 +183,46 @@ class MigrationCreationAction(base.BaseAction):
             "destination_endpoint_id": destination_enpoint,
             "destination_environment": self._destination_env,
             "new": True}
+
+    def migration_same(self, other_migration):
+        if other_migration.status != MIGRATION_STATUS_RUNNING:
+            return False
+        elif len(other_migration.instances) != 1:
+            return False
+        elif other_migration.instances[0] != self.payload['instance_name']:
+            return False
+        other_origin_endpoint = self._coriolis_client.endpoints.get(
+            other_migration.origin_endpoint_id)
+        other_dest_endpoint = self._coriolis_client.endpoints.get(
+            other_migration.origin_endpoint_id)
+        other_origin_project_name = getattr(
+            other_origin_endpoint.connection_info,
+            'project_name', 'barbican_secret')
+        other_dest_project_name = getattr(
+            other_dest_endpoint.connection_info,
+            'project_name', 'barbican_secret')
+
+        if (other_origin_endpoint.name !=
+                self.source_endpoint_create_action.get_endpoint_name()):
+            return False
+        elif (other_dest_endpoint.name !=
+              self.dest_endpoint_create_action.get_endpoint_name()):
+            return False
+        elif (other_origin_project_name !=
+              self.source_endpoint_create_action.get_tenant_name()):
+            return False
+        elif (other_dest_project_name !=
+              self.dest_endpoint_create_action.get_tenant_name()):
+            return False
+
+        return True
+
+    def cleanup(self):
+        for migration in self._coriolis_client.migrations.list():
+            if self.migration_same(migration):
+                self._coriolis_client.migrations.cancel(migration.id)
+                self.source_endpoint_create_action.cleanup()
+                self.dest_endpoint_create_action.cleanup()
 
 
 class BatchMigrationAction(base.BaseAction):
@@ -354,3 +395,9 @@ class BatchMigrationAction(base.BaseAction):
         # done_ids = [migr["existing_migration_id"]
         #             for migr in self._completed_migrations]
         return migrations
+
+    def cleanup(self):
+        for action in self.subactions:
+            action.cleanup()
+        for action in self._migration_prep_subactions:
+            action.cleanup()

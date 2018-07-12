@@ -1,7 +1,13 @@
+# Copyright 2018 Cloudbase Solutions Srl
+# All Rights Reserved.
+
 from coriolis_openstack_utils import conf
 from coriolis_openstack_utils.resource_utils import subnets
 
+from oslo_log import log as logging
+
 CONF = conf.CONF
+LOG = logging.getLogger(__name__)
 
 
 def get_network(openstack_client, name_or_id):
@@ -109,3 +115,17 @@ def check_network_similarity(
         conflict_keys.add('subnets')
 
     return src_relevant_keys == conflict_keys
+
+
+def delete_network(openstack_client, tenant_id, network_name):
+    nets = list_networks(
+        openstack_client, tenant_id, filters={'name': network_name})
+    nets_len = len(nets)
+    if nets_len == 1:
+        return openstack_client.neutron.delete_network(nets[0]['id'])
+    elif nets_len == 0:
+        LOG.info("Cannot find network named '%s' in tenant '%s' for "
+                 "deletion " % (network_name, tenant_id))
+    elif nets_len > 1:
+        LOG.info("Cannot delete network named '%s' in tenant '%s', "
+                 "multiple networks found." % (network_name, tenant_id))

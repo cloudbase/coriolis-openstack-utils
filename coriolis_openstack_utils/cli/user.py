@@ -98,7 +98,13 @@ class MigrateUser(lister.Lister):
                 % user['name'])
         else:
             if args.not_drill:
-                user = user_creation_action.execute_operations()
+                try:
+                    user = user_creation_action.execute_operations()
+                except Exception as action_exception:
+                    LOG.warn("Error occured while recreating user with id"
+                             " '%s'. Rolling back all changes", src_user_id)
+                    user_creation_action.cleanup()
+                    raise action_exception
             else:
                 user_creation_action.print_operations()
                 user = {

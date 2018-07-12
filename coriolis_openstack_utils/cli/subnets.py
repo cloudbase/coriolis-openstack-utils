@@ -94,7 +94,13 @@ class MigrateSubnet(lister.Lister):
 
         else:
             if args.not_drill:
-                subnet = subnet_creation_action.execute_operations()
+                try:
+                    subnet = subnet_creation_action.execute_operations()
+                except Exception as action_exception:
+                    LOG.warn("Error occured while recreating subnet '%s'."
+                             "Rolling back all changes", args.subnet_name)
+                    subnet_creation_action.cleanup()
+                    raise action_exception
             else:
                 subnet_creation_action.print_operations()
                 subnet = {

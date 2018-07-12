@@ -93,7 +93,13 @@ class MigrateRouter(lister.Lister):
                 % router['name'])
         else:
             if args.not_drill:
-                router = router_creation_action.execute_operations()
+                try:
+                    router = router_creation_action.execute_operations()
+                except Exception as action_exception:
+                    LOG.warn("Error occured while recreating router with id "
+                             "'%s'. Rolling back all changes", src_router_id)
+                    router_creation_action.cleanup()
+                    raise action_exception
             else:
                 router_creation_action.print_operations()
                 router = {

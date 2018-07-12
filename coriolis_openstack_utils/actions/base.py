@@ -74,6 +74,11 @@ class BaseAction(object, with_metaclass(abc.ABCMeta)):
         """
         pass
 
+    @abc.abstractmethod
+    def cleanup(self):
+        """Deletes all results of an action execution"""
+        pass
+
     def print_operations(self):
         """
         Prints all operations to be perfomed (including suboperations)
