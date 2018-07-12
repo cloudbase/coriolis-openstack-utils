@@ -72,3 +72,8 @@ def check_rule_similarity(source_rule, destination_rule):
         source_rule.keys()).intersection(relevant_keys)
 
     return len(relevant_source_keys) == len(conflict_keys)
+
+
+def delete_secgroup(openstack_client, tenant_id, name):
+    secgroup = get_security_group(openstack_client, tenant_id, name)
+    openstack_client.neutron.delete_security_group(secgroup['id'])

@@ -245,3 +245,7 @@ class OpenStackClient(object):
                 description=project_description)
 
         return project.id
+
+    def delete_project_by_name(self, project_name):
+        project_id = self.get_project_id(project_name)
+        self.keystone.projects.delete(project_id)

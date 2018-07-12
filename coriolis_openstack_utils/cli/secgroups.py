@@ -102,7 +102,14 @@ class MigrateSecurityGroup(lister.Lister):
                     dest_tenant_id)}
         else:
             if args.not_drill:
-                secgroup = secgroup_creation_action.execute_operations()
+                try:
+                    secgroup = secgroup_creation_action.execute_operations()
+                except Exception as action_exception:
+                    LOG.warn("Error occured while recreating security group "
+                             "with name '%s'. Rolling back all changes.",
+                             args.secgroup_name)
+                    secgroup_creation_action.cleanup()
+                    raise action_exception
             else:
                 secgroup_creation_action.print_operations()
                 secgroup = {

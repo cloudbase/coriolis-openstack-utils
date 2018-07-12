@@ -140,3 +140,17 @@ def create_router(destination_client, migr_info):
             router_id, dest_subnet_id)
 
     return router_id
+
+
+def delete_router(openstack_client, name):
+    routers = list_routers(
+        openstack_client, filters={'name': name})
+    routers_length = len(routers)
+    if routers_length == 1:
+        openstack_client.neutron.delete_router(routers[0]['id'])
+    elif routers_length > 1:
+        LOG.info("Unable to delete router named '%s'. "
+                 "Multiple routers found." % name)
+    elif routers_length == 0:
+        LOG.info("Unable to delete router named '%s'."
+                 "No router found." % name)

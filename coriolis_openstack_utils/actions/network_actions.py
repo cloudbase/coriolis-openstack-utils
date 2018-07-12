@@ -160,6 +160,11 @@ class SubnetCreationAction(base.BaseAction):
 
         return dest_subnet
 
+    def cleanup(self):
+        subnets.delete_subnet(
+            self._destination_openstack_client,
+            self.payload['dest_network_id'], self.get_new_subnet_name())
+
 
 class NetworkCreationAction(base.BaseAction):
     """ Action class for replicating Neutron networks.
@@ -285,6 +290,11 @@ class NetworkCreationAction(base.BaseAction):
 
         return dest_network
 
+    def cleanup(self):
+        networks.delete_network(
+            self._destination_openstack_client,
+            self.payload['dest_tenant_id'], self.get_new_network_name())
+
 
 class RouterCreationAction(base.BaseAction):
     """ Action class for replicating Neutron routers.
@@ -376,3 +386,7 @@ class RouterCreationAction(base.BaseAction):
             self._destination_openstack_client, router_id)
 
         return router
+
+    def cleanup(self):
+        routers.delete_router(
+            self._destination_openstack_client, self.get_new_router_name())

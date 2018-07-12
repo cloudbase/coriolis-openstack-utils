@@ -77,7 +77,14 @@ class CreateMigrations(lister.Lister):
                 "batch which has equivalent endpoint details was found)")
         else:
             if args.not_drill:
-                migrations = batch_migration_action.execute_operations()
+                try:
+                    migrations = batch_migration_action.execute_operations()
+                except Exception as action_migration:
+                    LOG.warn("Error occured while creating migrations for "
+                             "instances '%s'. Rolling back all changes",
+                             source_vms)
+                    batch_migration_action.cleanup()
+                    raise action_migration
             else:
                 batch_migration_action.print_operations()
 

@@ -140,6 +140,30 @@ class SourceEndpointCreationAction(base.BaseAction):
 
         return endpoint.id
 
+    def cleanup(self):
+        endpoint_name = self.get_endpoint_name()
+
+        connection_info = copy.deepcopy(self.connection_info)
+        similar_endpoints = []
+        for endpoint in self._coriolis_client.endpoints.list():
+            existing_connection_info = endpoint.connection_info.to_dict()
+            conn_infos_equal = utils.check_dict_equals(
+                connection_info, existing_connection_info)
+            if endpoint.name == endpoint_name:
+                if conn_infos_equal:
+                    similar_endpoints.append(endpoint.id)
+
+        endpoints_length = len(similar_endpoints)
+        if not similar_endpoints:
+            LOG.info("Cannot delete endpoint '%s' with connection_info '%s',"
+                     "not found.")
+        if endpoints_length == 1:
+            self._coriolis_client.endpoints.delete(similar_endpoints[0].id)
+        elif endpoints_length > 1:
+            LOG.warn("Multiple endpoints with name '%s' and "
+                     "connection_info '%s' found, skipping deletion."
+                     % (endpoint_name, connection_info))
+
 
 class DestinationEndpointCreationAction(SourceEndpointCreationAction):
 
