@@ -36,20 +36,20 @@ class MigrateSecurityGroup(lister.Lister):
         parser = super(MigrateSecurityGroup, self).get_parser(prog_name)
         source_group = parser.add_mutually_exclusive_group(required=True)
         source_group.add_argument(
-            "--source-tenant-id",
+            "--src-tenant-id",
             dest="src_tenant_id",
             help="The tenant id of the security group that is being migrated.")
         source_group.add_argument(
-            "--source-tenant-name", dest="src_tenant_name",
+            "--src-tenant-name", dest="src_tenant_name",
             help="The tenant name of the security group that is being "
                  "migrated.")
         destination_group = parser.add_mutually_exclusive_group(required=True)
         destination_group.add_argument(
-            "--destination-tenant-id",
+            "--dest-tenant-id",
             dest="dest_tenant_id",
             help="The tenant id of the security group that is being migrated.")
         destination_group.add_argument(
-            "--destination-tenant-name", dest="dest_tenant_name",
+            "--dest-tenant-name", dest="dest_tenant_name",
             help="The tenant name of the security group that is being "
                  "migrated.")
         parser.add_argument(

@@ -34,11 +34,11 @@ class MigrateRouter(lister.Lister):
         parser = super(MigrateRouter, self).get_parser(prog_name)
         source_group = parser.add_mutually_exclusive_group(required=True)
         source_group.add_argument(
-            "--source-router-id",
+            "--src-router-id",
             dest="src_router_id",
             help="The id of the router that is being migrated.")
         source_group.add_argument(
-            "--source-router-name", dest="src_router_name",
+            "--src-router-name", dest="src_router_name",
             help="The name of the router that is being "
                  "migrated.")
         parser.add_argument(
