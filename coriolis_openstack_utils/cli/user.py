@@ -34,11 +34,11 @@ class MigrateUser(lister.Lister):
         parser = super(MigrateUser, self).get_parser(prog_name)
         source_group = parser.add_mutually_exclusive_group(required=True)
         source_group.add_argument(
-            "--source-user-id",
+            "--src-user-id",
             dest="src_user_id",
             help="The id of the user that is being migrated.")
         source_group.add_argument(
-            "--source-user-name", dest="src_user_name",
+            "--src-user-name", dest="src_user_name",
             help="The name of the user that is being "
                  "migrated.")
         parser.add_argument(
@@ -68,7 +68,7 @@ class MigrateUser(lister.Lister):
             elif len(user_list) > 1:
                 raise Exception(
                     "Multiple users with name '%s' found! Please rename "
-                    "source user or use --source-user-id parameter."
+                    "source user or use --src-user-id parameter."
                     % args.src_user_name)
             elif not user_list:
                 raise Exception(

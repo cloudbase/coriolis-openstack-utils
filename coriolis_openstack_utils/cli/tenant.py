@@ -31,11 +31,11 @@ class MigrateTenant(lister.Lister):
         parser = super(MigrateTenant, self).get_parser(prog_name)
         source_group = parser.add_mutually_exclusive_group(required=True)
         source_group.add_argument(
-            "--source-tenant-id",
+            "--src-tenant-id",
             dest="src_tenant_id",
             help="The tenant id of the security group that is being migrated.")
         source_group.add_argument(
-            "--source-tenant-name", dest="src_tenant_name",
+            "--src-tenant-name", dest="src_tenant_name",
             help="The tenant name of the security group that is being "
                  "migrated.")
         instance_options = parser.add_mutually_exclusive_group(required=True)
