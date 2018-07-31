@@ -290,6 +290,7 @@ class RouterCreationAction(base.BaseAction):
     """ Action class for replicating Neutron routers.
     param action_payload: dict(): payload (params) for the action
     must contain 'src_router_id'
+                 'dest_tenant_id'
     """
 
     action_type = base.ACTION_TYPE_CHECK_CREATE_ROUTER
@@ -364,6 +365,10 @@ class RouterCreationAction(base.BaseAction):
             self.NEW_ROUTER_DESCRIPTION_FORMAT % self.get_source_router_name())
 
         migr_info['migration_body']['description'] = description
+        migr_info['migration_body']['project_id'] = self.payload[
+            'dest_tenant_id']
+        migr_info['migration_body']['tenant_id'] = self.payload[
+            'dest_tenant_id']
         router_id = routers.create_router(
             self._destination_openstack_client, migr_info)
 
