@@ -34,13 +34,21 @@ class MigrateRouter(lister.Lister):
         parser = super(MigrateRouter, self).get_parser(prog_name)
         source_group = parser.add_mutually_exclusive_group(required=True)
         source_group.add_argument(
-            "--source-router-id",
+            "--src-router-id",
             dest="src_router_id",
             help="The id of the router that is being migrated.")
         source_group.add_argument(
-            "--source-router-name", dest="src_router_name",
+            "--src-router-name", dest="src_router_name",
             help="The name of the router that is being "
                  "migrated.")
+        destination_group = parser.add_mutually_exclusive_group(required=True)
+        destination_group.add_argument(
+            "--dest-tenant-id",
+            dest="dest_tenant_id",
+            help="The id of the destination tenant.")
+        destination_group.add_argument(
+            "--dest-tenant-name", dest="dest_tenant_name",
+            help="The name of the destination tenant.")
         parser.add_argument(
             "--not-a-drill", dest="not_drill", action="store_true",
             default=False,
@@ -53,14 +61,23 @@ class MigrateRouter(lister.Lister):
         source_client = conf.get_source_openstack_client()
         destination_client = conf.get_destination_openstack_client()
 
+        src_router_id = None
         if args.src_router_name:
             src_router_id = routers.get_router(
                 source_client, args.src_router_name)['id']
         else:
             src_router_id = args.src_router_id
 
+        dest_tenant_id = None
+        if args.dest_tenant_name:
+            dest_tenant_id = destination_client.get_project_id(
+                args.dest_tenant_name)
+        else:
+            dest_tenant_id = args.dest_tenant_id
+
         router_creation_payload = {
-            'src_router_id': src_router_id}
+            'src_router_id': src_router_id,
+            'dest_tenant_id': dest_tenant_id}
 
         router_creation_action = network_actions.RouterCreationAction(
             router_creation_payload,

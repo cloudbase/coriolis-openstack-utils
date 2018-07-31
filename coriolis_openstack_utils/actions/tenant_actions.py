@@ -334,7 +334,8 @@ class WholeTenantCreationAction(TenantCreationAction):
 
         for router_id in src_tenant_routers:
             router_migration_action = network_actions.RouterCreationAction(
-                {'src_router_id': router_id},
+                {'src_router_id': router_id,
+                 'dest_tenant_id': dest_tenant_id},
                 source_openstack_client=self._source_openstack_client,
                 destination_openstack_client=self._destination_openstack_client
                 )
