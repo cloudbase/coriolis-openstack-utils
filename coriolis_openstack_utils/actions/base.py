@@ -16,6 +16,7 @@ from six import with_metaclass
 
 
 ACTION_TYPE_BATCH_MIGRATE = "create_batch_migration"
+ACTION_TYPE_BATCH_REPLICATE = "create_batch_replication"
 ACTION_TYPE_CHECK_CREATE_SOURCE_ENDPOINT = "create_source_endpoint"
 ACTION_TYPE_CHECK_CREATE_DESTINATION_ENDPOINT = "create_destination_endpoint"
 ACTION_TYPE_CHECK_CREATE_TENANT = "create_tenant"
@@ -25,6 +26,7 @@ ACTION_TYPE_CHECK_CREATE_SUBNET = "create_subnet"
 ACTION_TYPE_CHECK_CREATE_NETWORK = "create_network"
 ACTION_TYPE_CHECK_CREATE_ROUTER = "create_router"
 ACTION_TYPE_CHECK_CREATE_USER = "create_user"
+ACTION_TYPE_CHECK_CREATE_REPLICA = "create_replica"
 
 
 class BaseAction(object, with_metaclass(abc.ABCMeta)):

@@ -63,7 +63,7 @@ def find_source_instances_by_name(client, instance_names):
     return instance_info_list
 
 
-def validate_migration_options(
+def validate_transfer_options(
         source_client, destination_client, instance_info, target_env):
     """
     Raise error if: unmapped network, inexistent destination network,
