@@ -13,10 +13,10 @@ from coriolis_openstack_utils.cli import formatter
 LOG = logging.getLogger(__name__)
 
 
-class MigrationFormatter(formatter.EntityFormatter):
+class ReplicaFormatter(formatter.EntityFormatter):
     columns = (
         "Instance Name",
-        "Migration ID",
+        "Replica ID",
         "Status",
         "Origin Endpoint ID",
         "Destination Endpoint ID",
@@ -36,13 +36,17 @@ class MigrationFormatter(formatter.EntityFormatter):
         return data
 
 
-class CreateMigrations(lister.Lister):
+class CreateReplicas(lister.Lister):
     def get_parser(self, prog_name):
-        parser = super(CreateMigrations, self).get_parser(prog_name)
+        parser = super(CreateReplicas, self).get_parser(prog_name)
         parser.add_argument(
             "--batch-name", dest="batch_name",
-            default="MigrationBatch",
+            default="ReplicaBatch",
             help="Human-readable name/id for the batch.")
+        parser.add_argument(
+            "--execute-replicas", dest="execute_replica", action="store_true",
+            default=False,
+            help="If set, replicas will be automatically executed.")
         parser.add_argument(
             "--not-a-drill", dest="not_drill", action="store_true",
             default=False,
@@ -60,32 +64,27 @@ class CreateMigrations(lister.Lister):
 
         source_vms = args.instances
         batch_name = args.batch_name
-        migration_payload = {
+        execute_replica = args.execute_replica
+        replica_payload = {
             "instances": source_vms,
-            "batch_name": batch_name}
-        batch_migration_action = (
-            coriolis_transfer_actions.BatchMigrationAction(
-                migration_payload, source_openstack_client=source_client,
+            "batch_name": batch_name,
+            "execute_replica": execute_replica}
+        batch_replica_action = (
+            coriolis_transfer_actions.BatchReplicaAction(
+                replica_payload, source_openstack_client=source_client,
                 destination_openstack_client=destination_client,
                 coriolis_client=coriolis, destination_env=dest_env))
 
-        migrations = []
-        done = batch_migration_action.check_already_done()
+        replicas = []
+        done = batch_replica_action.check_already_done()
         if done["done"]:
             LOG.info(
-                "Batch seemingly done. (a migration for each VM in the "
+                "Batch seemingly done. (a replica for each VM in the "
                 "batch which has equivalent endpoint details was found)")
         else:
             if args.not_drill:
-                try:
-                    migrations = batch_migration_action.execute_operations()
-                except Exception as action_migration:
-                    LOG.warn("Error occured while creating migrations for "
-                             "instances '%s'. Rolling back all changes",
-                             source_vms)
-                    batch_migration_action.cleanup()
-                    raise action_migration
+                replicas = batch_replica_action.execute_operations()
             else:
-                batch_migration_action.print_operations()
+                batch_replica_action.print_operations()
 
-        return MigrationFormatter().list_objects(migrations)
+        return ReplicaFormatter().list_objects(replicas)
