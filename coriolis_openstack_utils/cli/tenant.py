@@ -53,6 +53,16 @@ class MigrateTenant(lister.Lister):
             "--not-a-drill", dest="not_drill", action="store_true",
             default=False,
             help="If unset, tooling will only print the indented operations.")
+        replica_group = parser.add_argument_group(
+            'Replica Options', 'options related to replicas.')
+        replica_group.add_argument(
+            "--use-replicas", dest="use_replicas", action="store_true",
+            help="If set, tooling will create replicas for selected "
+                 "instances.")
+        replica_group.add_argument(
+            "--execute-replicas", dest='execute_replicas',
+            action='store_true',
+            help='If set, replicas will be executed.')
         return parser
 
     def take_action(self, args):
@@ -69,6 +79,8 @@ class MigrateTenant(lister.Lister):
 
         tenant_creation_payload = {
             "tenant_name": src_tenant_name,
+            "use_replicas": args.use_replicas,
+            "execute_replicas": args.execute_replicas
             }
         if args.no_instances:
             tenant_creation_payload['instances'] = None

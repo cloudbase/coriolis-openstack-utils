@@ -310,6 +310,8 @@ class WholeTenantCreationAction(TenantCreationAction):
                          ['vm1','vm2']: instances named 'vm1' and 'vm2'
                                          will be migrated.
                          []: all instances will be migrated.
+            'use_replicas': If set, will use replicas instead of migration.
+            'execute_replicas': If set, will execute the replicas.
     """
     def __init__(
             self, action_payload, source_openstack_client=None,
@@ -406,17 +408,32 @@ class WholeTenantCreationAction(TenantCreationAction):
 
             dest_target_migr_env = {'network_map': dest_net_map,
                                     'security_groups': dest_secgroups}
-            instance_migration_action = (
-                coriolis_transfer_actions.MigrationCreationAction(
-                    {'instance_name': instance.name,
-                     'instance_tenant_name':
-                     self.payload['tenant_name']},
-                    source_openstack_client=self._source_openstack_client,
-                    destination_openstack_client=(
-                        self._destination_openstack_client),
-                    destination_env=dest_target_migr_env,
-                    coriolis_client=self._coriolis_client))
-            self.subactions.append(instance_migration_action)
+            instance_transfer_action = None
+            if self.payload['use_replicas']:
+                instance_transfer_action = (
+                    coriolis_transfer_actions.ReplicaCreationAction(
+                        {'instance_name': instance.name,
+                         'instance_tenant_name':
+                         self.payload['tenant_name'],
+                         'execute_replica': self.payload['execute_replicas']},
+                        source_openstack_client=self._source_openstack_client,
+                        destination_openstack_client=(
+                            self._destination_openstack_client),
+                        destination_env=dest_target_migr_env,
+                        coriolis_client=self._coriolis_client))
+            else:
+                instance_transfer_action = (
+                    coriolis_transfer_actions.MigrationCreationAction(
+                        {'instance_name': instance.name,
+                         'instance_tenant_name':
+                         self.payload['tenant_name']},
+                        source_openstack_client=self._source_openstack_client,
+                        destination_openstack_client=(
+                            self._destination_openstack_client),
+                        destination_env=dest_target_migr_env,
+                        coriolis_client=self._coriolis_client))
+
+            self.subactions.append(instance_transfer_action)
 
         for migration_action in self.subactions:
             new_migration_subactions = []
