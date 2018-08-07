@@ -112,19 +112,19 @@ def validate_transfer_options(
 
     if not destination_mapped_volume_types.issubset(destination_volume_types):
         LOG.info("%s volume types don't exist on destination." %
-                 destination_mapped_volume_types -
-                 destination_volume_types)
+                 (destination_mapped_volume_types -
+                  destination_volume_types))
 
     if not source_mapped_volume_types.issubset(source_volume_types):
         LOG.info("%s volume types don't exist on source." %
-                 source_mapped_volume_types -
-                 source_volume_types)
+                 (source_mapped_volume_types -
+                  source_volume_types))
     instance_volume_types = set(instance_info['attached_storage'])
 
     if not instance_volume_types.issubset(source_volume_types):
         LOG.info("%s volume types are not mapped." %
-                 instance_volume_types -
-                 source_mapped_volume_types)
+                 (instance_volume_types -
+                  source_mapped_volume_types))
 
 
 def _get_instance_assessment(source_client, instance):
