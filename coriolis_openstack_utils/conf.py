@@ -60,6 +60,9 @@ CONF.register_opts(
 SKIP_OS_MORPHING_OPT = conf.BoolOpt(
     "skip_os_morphing", default=True,
     help="Whether or not skip the OSMorphing process.")
+SHUTDOWN_INSTANCES_OPT = conf.BoolOpt(
+    "shutdown_instances", default=False,
+    help="Whether or not to shutdown instances during replica execution.")
 NETMAP_OPT = conf.DictOpt(
     "network_map", required=True, help="Dict network mapping.")
 STORMAP_OPT = conf.DictOpt(
@@ -142,7 +145,8 @@ DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT, NEW_TENANT_SECGROUP_PROTOCOLS_OPT,
     NEW_SECGROUP_NAME_OPT, NEW_SUBNAME_NAME_OPT, NEW_NETWORK_NAME_OPT,
     NEW_NETWORK_TYPE_OPT, NEW_PHYSICAL_NETWORK_OPT, NEW_ROUTER_NAME_OPT,
-    EXTERNAL_NETWORK_MAP_OPT, NEW_USER_NAME_OPT, NEW_USERS_PASSWORD_OPT]
+    EXTERNAL_NETWORK_MAP_OPT, NEW_USER_NAME_OPT, NEW_USERS_PASSWORD_OPT,
+    SHUTDOWN_INSTANCES_OPT]
 CONF.register_opts(
     DESTINATION_OPTS, constants.DESTINATION_OPT_GROUP_NAME)
 

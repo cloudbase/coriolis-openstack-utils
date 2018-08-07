@@ -49,6 +49,7 @@ endpoint_name_format = "Destination_%(tenant)s"
 # Name of the role to add the given user as in newly-created tenants.
 admin_role_name = "admin"
 skip_os_morphing = True
+shutdown_instances = False
 identity_api_version = 3
 auth_url = http://<destination_keystone_host>:5000
 region_name = RegionTwo

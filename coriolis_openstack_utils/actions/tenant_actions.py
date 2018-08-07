@@ -332,7 +332,7 @@ class WholeTenantCreationAction(TenantCreationAction):
     def execute_operations(self):
         dest_tenant_id = super(
             WholeTenantCreationAction, self).execute_operations()
-        src_tenant_id = self._destination_openstack_client.get_project_id(
+        src_tenant_id = self._source_openstack_client.get_project_id(
             self.payload['tenant_name'])
 
         src_tenant_networks = [

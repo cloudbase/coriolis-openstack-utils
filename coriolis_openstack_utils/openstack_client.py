@@ -5,6 +5,7 @@ import time
 
 from keystoneauth1 import loading
 from keystoneauth1 import session as ks_session
+from keystoneauth1.exceptions.http import Forbidden as KeystoneForbidden
 from oslo_log import log as logging
 
 from cinderclient import client as cinder_client
@@ -119,6 +120,28 @@ class OpenStackClient(object):
             session=session, insecure=untrusted_swift,
             os_options=swift_os_options)
 
+    def get_tenants_list(self):
+        """ For some credentials, it is not possible to list tenants not
+        created by the respective user, as such, we impose filtering on the
+        tenant listing."""
+        try:
+            return self.keystone.tenants.list()
+        except KeystoneForbidden:
+            user_id = self.session.get_user_id()
+            return self.keystone.tenants.list(user=user_id)
+        return []
+
+    def get_projects_list(self):
+        """ For some credentials, it is not possible to list projects not
+        created by the respective user, as such, we impose filtering on the
+        project listing."""
+        try:
+            return self.keystone.projects.list()
+        except KeystoneForbidden:
+            user_id = self.session.get_user_id()
+            return self.keystone.projects.list(user=user_id)
+        return []
+
     def wait_for_project_creation(
             self, project_name, period=2, tries=30):
         """ Waits for tenant with specified name to appear. """
@@ -127,9 +150,9 @@ class OpenStackClient(object):
         projects = None
         while i < tries:
             if int(self.connection_info["identity_api_version"]) == 2:
-                projects = self.keystone.tenants.list()
+                projects = self.get_tenants_list()
             else:
-                projects = self.keystone.projects.list()
+                projects = self.get_projects_list()
 
             filtered = [p for p in projects if p.name == project_name]
             if len(filtered) == 0:
@@ -166,9 +189,9 @@ class OpenStackClient(object):
     def get_project_id(self, project_name):
         projects = None
         if int(self.connection_info["identity_api_version"]) == 2:
-            projects = self.keystone.tenants.list()
+            projects = self.get_tenants_list()
         else:
-            projects = self.keystone.projects.list()
+            projects = self.get_projects_list()
 
         filtered = [p for p in projects if p.name == project_name]
         if not filtered:
@@ -185,9 +208,9 @@ class OpenStackClient(object):
     def list_project_names(self):
         projects = None
         if int(self.connection_info["identity_api_version"]) == 2:
-            projects = self.keystone.tenants.list()
+            projects = self.get_tenants_list()
         else:
-            projects = self.keystone.projects.list()
+            projects = self.get_projects_list()
 
         return [p.name for p in projects]
 

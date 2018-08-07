@@ -83,7 +83,15 @@ class CreateReplicas(lister.Lister):
                 "batch which has equivalent endpoint details was found)")
         else:
             if args.not_drill:
-                replicas = batch_replica_action.execute_operations()
+                try:
+                    replicas = batch_replica_action.execute_operations()
+                except Exception as action_migration:
+                    LOG.warn("Error occured while creating replicas for "
+                             "instances '%s'. Rolling back all changes",
+                             source_vms)
+                    batch_replica_action.cleanup()
+                    raise action_migration
+
             else:
                 batch_replica_action.print_operations()
 
