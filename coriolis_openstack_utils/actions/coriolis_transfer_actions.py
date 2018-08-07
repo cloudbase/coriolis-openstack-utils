@@ -23,6 +23,12 @@ MIGRATION_STATUS_RUNNING = "RUNNING"
 REPLICA_EXECUTION_STATUS_ERROR = "ERROR"
 REPLICA_EXECUTION_STATUS_NONE = "NO EXECUTION"
 
+TRANSFER_TYPE_REPLICA = 'replica'
+TRANSFER_ACTION_TYPE_REPLICA = 'replicate'
+
+TRANSFER_TYPE_MIGRATION = 'migration'
+TRANSFER_ACTION_TYPE_MIGRATION = 'migrate'
+
 
 class TransferAction(base.BaseAction):
 
@@ -65,23 +71,23 @@ class TransferAction(base.BaseAction):
 
     @abc.abstractmethod
     def get_transfers_list(self):
-        """Get all coriolis migrations or replicas, in reversed order."""
+        """ Get all transfer actions of this type. """
         pass
 
     @abc.abstractmethod
     def check_existing_transfer(self, existing_transfer):
-        """Check existing transfer, based on status, determine if
-        a new transfer action must be made."""
+        """ Check existing transfer, based on status, determine if
+        a new transfer action must be made. """
         pass
 
     @abc.abstractmethod
     def get_transfer_status(self, transfer):
-        """Get migration status, or replica execution status."""
+        """ Get transfer action status. """
         pass
 
     @abc.abstractmethod
     def create_transfer(self, source_endpoint, destination_endpoint):
-        """Create migration or replica."""
+        """ Create transfer action. """
         pass
 
     def check_already_done(self):
@@ -198,7 +204,7 @@ class TransferAction(base.BaseAction):
 
 
 class MigrationCreationAction(TransferAction):
-    """(dict) action_payload must contain:
+    """ (dict) action_payload must contain:
         - (string) instance_tenant_name
         - (string) instance_name
     """
@@ -259,7 +265,7 @@ class MigrationCreationAction(TransferAction):
 
 
 class ReplicaCreationAction(TransferAction):
-    """(dict) action_payload must contain:
+    """ (dict) action_payload must contain:
         - (string) instance_tenant_name
         - (string) instance_name
         - (boolean) execute_replica
@@ -329,7 +335,9 @@ class ReplicaCreationAction(TransferAction):
             self._destination_env, [self.payload['instance_name']])
 
         if self.payload['execute_replica'] is True:
-            self._coriolis_client.replica_executions.create(replica.id)
+            shutdown_instances = CONF.destination.shutdown_instances
+            self._coriolis_client.replica_executions.create(
+                replica.id, shutdown_instances=shutdown_instances)
 
         return replica
 
@@ -535,8 +543,14 @@ class BatchTransferAction(base.BaseAction):
 
 class BatchMigrationAction(BatchTransferAction):
     action_type = base.ACTION_TYPE_BATCH_MIGRATE
-    transfer_type = "migration"
-    transfer_action_type = "migrate"
+
+    @property
+    def transfer_type(self):
+        return TRANSFER_TYPE_MIGRATION
+
+    @property
+    def transfer_action_type(self):
+        return TRANSFER_ACTION_TYPE_MIGRATION
 
     def create_transfer_subaction(self, vm_info):
         return MigrationCreationAction(
@@ -548,8 +562,14 @@ class BatchMigrationAction(BatchTransferAction):
 
 class BatchReplicaAction(BatchTransferAction):
     action_type = base.ACTION_TYPE_BATCH_REPLICATE
-    transfer_type = "replica"
-    transfer_action_type = "replicate"
+
+    @property
+    def transfer_type(self):
+        return TRANSFER_TYPE_REPLICA
+
+    @property
+    def transfer_action_type(self):
+        return TRANSFER_ACTION_TYPE_REPLICA
 
     def create_transfer_subaction(self, vm_info):
         vm_info['execute_replica'] = self.payload['execute_replica']
