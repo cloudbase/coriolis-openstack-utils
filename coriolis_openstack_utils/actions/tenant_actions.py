@@ -121,16 +121,11 @@ class TenantCreationAction(base.BaseAction):
             # NOTE: intentionally not setting 'port_range_{min,max}'
             "remote_ip_prefix": "0.0.0.0/0"}
 
-        protocols = CONF.destination.new_tenant_allowed_protocols
-        for protocol in protocols:
-            rule = copy.deepcopy(generic_allow_rule)
-            rule["protocol"] = protocol
-
-            LOG.info(
-                "Adding rule to allow '%s' traffic in new tenant '%s'",
-                protocol, tenant_name)
-            new_client.neutron.create_security_group_rule({
-                "security_group_rule": rule})
+        LOG.info(
+            "Adding rule to allow *all* traffic in new tenant '%s'",
+            tenant_name)
+        new_client.neutron.create_security_group_rule({
+            "security_group_rule": generic_allow_rule})
 
     def equivalent_to(self, other_action):
         if other_action.action_type == self.action_type:
