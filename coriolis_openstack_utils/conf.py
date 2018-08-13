@@ -116,12 +116,8 @@ NEW_TENANT_NOVA_QUOTAS_OPT = conf.DictOpt(
 NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT = conf.BoolOpt(
     "new_tenant_open_default_secgroup", default=False,
     help="If set, the 'default' security group of newly-created "
-         "tenants will have rules allowing traffic on ALL ports.")
-NEW_TENANT_SECGROUP_PROTOCOLS_OPT = conf.ListOpt(
-    "new_tenant_allowed_protocols", default=["tcp", "udp", "icmp"],
-    help="List of protocols to allow traffic for in default secgroup "
-         "of newly-created tenants. Only effective if "
-         "'new_tenant_open_default_secgroup' is set to True.")
+         "tenants will have rules allowing traffic on ALL ports for ALL "
+         "protocols.")
 NEW_NETWORK_TYPE_OPT = conf.DictOpt(
     "network_type_mapping", default={},
     help="Mapping between source network type and destination network type.")
@@ -142,11 +138,10 @@ DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     SKIP_OS_MORPHING_OPT, ADMIN_ROLE_NAME, NEW_TENANT_NAME_OPT,
     NEW_TENANT_NEUTRON_QUOTAS_OPT, NEW_TENANT_CINDER_QUOTAS_OPT,
     NEW_TENANT_NOVA_QUOTAS_OPT, NEW_TENANT_ADMIN_USERS_OPT,
-    NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT, NEW_TENANT_SECGROUP_PROTOCOLS_OPT,
-    NEW_SECGROUP_NAME_OPT, NEW_SUBNAME_NAME_OPT, NEW_NETWORK_NAME_OPT,
-    NEW_NETWORK_TYPE_OPT, NEW_PHYSICAL_NETWORK_OPT, NEW_ROUTER_NAME_OPT,
-    EXTERNAL_NETWORK_MAP_OPT, NEW_USER_NAME_OPT, NEW_USERS_PASSWORD_OPT,
-    SHUTDOWN_INSTANCES_OPT]
+    NEW_TENANT_OPEN_DEFAULT_SECGROUP_OPT, NEW_SECGROUP_NAME_OPT,
+    NEW_SUBNAME_NAME_OPT, NEW_NETWORK_NAME_OPT, NEW_NETWORK_TYPE_OPT,
+    NEW_PHYSICAL_NETWORK_OPT, NEW_ROUTER_NAME_OPT, EXTERNAL_NETWORK_MAP_OPT,
+    NEW_USER_NAME_OPT, NEW_USERS_PASSWORD_OPT, SHUTDOWN_INSTANCES_OPT]
 CONF.register_opts(
     DESTINATION_OPTS, constants.DESTINATION_OPT_GROUP_NAME)
 
