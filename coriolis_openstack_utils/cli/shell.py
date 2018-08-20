@@ -41,6 +41,7 @@ class CoriolisOpenStackUtilsApp(app.App):
         parser.add_argument(
             "--config-file", metavar="CONF_FILE", dest="conf_file",
             help="Path to the config file.")
+
         parser.epilog = (
             "See 'coriolis-openstack-util help COMMAND' for help on individual"
             " subcommands offered by the utility.")
@@ -50,15 +51,21 @@ class CoriolisOpenStackUtilsApp(app.App):
     def run(self, argv):
         # display usage if no args provided:
         known_args, remainder = self.parser.parse_known_args()
-        if known_args.conf_file is None:
-            self.stderr.write(self.parser.format_usage())
-            return 1
-        CONF(
-            # NOTE: passing the whole of sys.argv[1:] will make
-            # oslo_conf error out with urecognized arguments:
-            ["--config-file", known_args.conf_file],
-            project=constants.PROJECT_NAME,
-            version=constants.PROJECT_VERSION)
+        if known_args.conf_file is not None:
+            CONF(
+                # NOTE: passing the whole of sys.argv[1:] will make
+                # oslo_conf error out with urecognized arguments:
+                ["--config-file", known_args.conf_file],
+                project=constants.PROJECT_NAME,
+                version=constants.PROJECT_VERSION)
+
+        # show full traceback unless -q/--quiet passed
+        if known_args.verbose_level != 0:
+            remainder.append("--debug")
+
+        if known_args.log_file:
+            remainder.append("--log-file")
+            remainder.append(known_args.log_file)
         if not remainder:
             self.stderr.write(self.parser.format_usage())
             return 1
