@@ -116,7 +116,11 @@ class TransferAction(base.BaseAction):
 
         existing_transfer = None
         for transfer in self.get_transfers_list():
-            migration_dest_env = transfer.destination_environment.to_dict()
+            migration_dest_env = transfer.destination_environment
+            if migration_dest_env is not None:
+                migration_dest_env = migration_dest_env.to_dict()
+            else:
+                migration_dest_env = {}
             if (transfer.origin_endpoint_id == source_endpoint_id and
                     transfer.destination_endpoint_id == (
                         destination_endpoint_id) and utils.check_dict_equals(

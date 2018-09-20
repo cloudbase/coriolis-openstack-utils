@@ -63,6 +63,12 @@ class MigrateTenant(lister.Lister):
             "--execute-replicas", dest='execute_replicas',
             action='store_true',
             help='If set, replicas will be executed.')
+        parser.add_argument(
+            "--replicate-flavors", dest='replicate_flavors',
+            action='store_true',
+            help='If set, all source flavors will be recreated on '
+                 'destination.')
+
         return parser
 
     def take_action(self, args):
@@ -80,7 +86,8 @@ class MigrateTenant(lister.Lister):
         tenant_creation_payload = {
             "tenant_name": src_tenant_name,
             "use_replicas": args.use_replicas,
-            "execute_replicas": args.execute_replicas
+            "execute_replicas": args.execute_replicas,
+            "replicate_flavors": args.replicate_flavors
             }
         if args.no_instances:
             tenant_creation_payload['instances'] = None
