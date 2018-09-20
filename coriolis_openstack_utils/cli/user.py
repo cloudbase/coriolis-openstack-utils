@@ -7,8 +7,10 @@ from cliff import lister
 
 from coriolis_openstack_utils import conf
 from coriolis_openstack_utils.actions import tenant_actions
+from coriolis_openstack_utils.actions import keypair_actions
 from coriolis_openstack_utils.cli import formatter
 from coriolis_openstack_utils.resource_utils import users
+from novaclient import client as nova_client
 
 
 LOG = logging.getLogger(__name__)
@@ -51,6 +53,12 @@ class MigrateUser(lister.Lister):
             help="If unset, tooling will add admin tenant role from migrated "
                  "tenants on source to which the user originally had the "
                  "admin role.")
+        parser.add_argument(
+            "--replicate-keypairs", dest="replicate_keypairs",
+            action="store_true", default=False,
+            help="If set, tooling will replicate keypairs associated with "
+                 "source username on destination according to the "
+                 "new_user_name_format config option.")
 
         return parser
 
@@ -89,6 +97,15 @@ class MigrateUser(lister.Lister):
 
         done = user_creation_action.check_already_done()
         user = []
+        src_nova_client = source_client.nova
+        latest_src_nova_version = src_nova_client.versions.get_current(
+                ).version
+        if latest_src_nova_version:
+            session = src_nova_client.client.session
+            src_nova_client = nova_client.Client(
+                latest_src_nova_version,
+                session=session)
+
         if done["done"]:
             user = users.get_user(destination_client, done['result']).to_dict()
             user['tenants'] = users.get_user_admin_tenants(
@@ -96,10 +113,39 @@ class MigrateUser(lister.Lister):
             LOG.info(
                 "User '%s' Migration seemingly done."
                 % user['name'])
+
         else:
             if args.not_drill:
                 try:
                     user = user_creation_action.execute_operations()
+                    if args.replicate_keypairs:
+                        src_nova_version = float(
+                                src_nova_client.api_version.get_string())
+                        if src_nova_version < 2.2:
+                            raise Exception(
+                                "Source nova client microversion \"%s\" too "
+                                "low for keypair user_id association. "
+                                "Unable to replicate keypairs associated to "
+                                "user." % (
+                                    src_nova_client.api_version.get_string()))
+                        for keypair in src_nova_client.keypairs.list(
+                                user_id=src_user_id):
+                            keypair_creation_action = (
+                                keypair_actions.KeypairCreationAction(
+                                    {'src_keypair_name': keypair.id,
+                                     'src_user_id': src_user_id},
+                                    source_openstack_client=source_client,
+                                    destination_openstack_client=(
+                                        destination_client)))
+                            try:
+                                action = keypair_creation_action
+                                action.execute_operations()
+                            except Exception:
+                                LOG.warn(
+                                    "Error occured while recreating "
+                                    "keypair \"%s\". Rolling back all "
+                                    "changes." % keypair.id)
+                                keypair_creation_action.cleanup()
                 except Exception as action_exception:
                     LOG.warn("Error occured while recreating user with id"
                              " '%s'. Rolling back all changes", src_user_id)

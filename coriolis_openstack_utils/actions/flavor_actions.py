@@ -7,7 +7,6 @@ from oslo_log import log as logging
 
 from coriolis_openstack_utils import conf
 from coriolis_openstack_utils.actions import base
-from novaclient import client as nova_client
 
 import novaclient.exceptions
 import keystoneauth1.exceptions.http
@@ -87,13 +86,6 @@ class FlavorCreationAction(base.BaseAction):
             "original": self._source_openstack_client.nova.flavors.get(
                 self.payload['src_flavor_id']).name}
 
-    def get_latest_dest_novaclient(self):
-        dest_nova = self._destination_openstack_client.nova
-        dest_keystone = self._destination_openstack_client.keystone
-        return nova_client.Client(
-            dest_nova.versions.get_current().version,
-            session=dest_keystone.session)
-
     def create_flavor_body(self):
         src_flavor = self._source_openstack_client.nova.flavors.get(
             self.payload['src_flavor_id'])
@@ -101,7 +93,7 @@ class FlavorCreationAction(base.BaseAction):
         src_flavor_info = src_flavor.to_dict()
         body = {k: v for k, v in src_flavor_info.items()
                 if k in relevant_keys}
-        dest_nova = self.get_latest_dest_novaclient()
+        dest_nova = self._destination_openstack_client.nova
 
         if float(dest_nova.api_version.get_string()) >= 2.55:
             body['description'] = (self.NEW_FLAVOR_DESCRIPTION %
@@ -166,7 +158,7 @@ class FlavorCreationAction(base.BaseAction):
         LOG.info("Creating destination flavor with name '%s'" %
                  dest_flavor_name)
         body = self.create_flavor_body()
-        dest_nova = self.get_latest_dest_novaclient()
+        dest_nova = self._destination_openstack_client.nova
         dest_flavor = dest_nova.flavors.create(**body)
         if not dest_flavor.is_public:
             self.add_tenant_access_to_flavor(dest_flavor)
