@@ -12,6 +12,7 @@ from coriolis_openstack_utils import conf
 from coriolis_openstack_utils import openstack_client
 from coriolis_openstack_utils.actions import base
 from coriolis_openstack_utils.actions import coriolis_transfer_actions
+from coriolis_openstack_utils.actions import flavor_actions
 from coriolis_openstack_utils.actions import network_actions
 from coriolis_openstack_utils.actions import secgroup_actions
 from coriolis_openstack_utils.resource_utils import instances
@@ -334,6 +335,18 @@ class WholeTenantCreationAction(TenantCreationAction):
             network['id'] for network in
             networks.list_networks(self._source_openstack_client,
                                    src_tenant_id)]
+        if self.payload['replicate_flavors']:
+            src_flavors = [flavor.id for flavor in
+                           self._source_openstack_client.nova.flavors.list(
+                               is_public=None)]
+            for src_flavor_id in src_flavors:
+                dest_client = self._destination_openstack_client
+                flavor_migration_action = flavor_actions.FlavorCreationAction(
+                    {'src_flavor_id': src_flavor_id},
+                    source_openstack_client=self._source_openstack_client,
+                    destination_openstack_client=dest_client)
+
+                self.subactions.append(flavor_migration_action)
 
         for net_id in src_tenant_networks:
             network_migration_action = network_actions.NetworkCreationAction(

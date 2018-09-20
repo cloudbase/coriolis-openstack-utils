@@ -27,6 +27,7 @@ ACTION_TYPE_CHECK_CREATE_NETWORK = "create_network"
 ACTION_TYPE_CHECK_CREATE_ROUTER = "create_router"
 ACTION_TYPE_CHECK_CREATE_USER = "create_user"
 ACTION_TYPE_CHECK_CREATE_REPLICA = "create_replica"
+ACTION_TYPE_CHECK_CREATE_FLAVOR = "create_flavor"
 
 
 class BaseAction(object, with_metaclass(abc.ABCMeta)):

@@ -6,6 +6,7 @@ from oslo_log import log as logging
 from cliff import lister
 
 from coriolis_openstack_utils.actions import coriolis_transfer_actions
+from coriolis_openstack_utils.actions import flavor_actions
 from coriolis_openstack_utils import conf
 from coriolis_openstack_utils.cli import formatter
 
@@ -48,6 +49,12 @@ class CreateMigrations(lister.Lister):
             default=False,
             help="If unset, tooling will only print the indented operations.")
         parser.add_argument(
+            "--replicate-flavors", dest="replicate_flavors",
+            action="store_true", default=False,
+            help="If set, all source flavors will be recreated on "
+                 "destination.")
+
+        parser.add_argument(
             "instances", metavar="INSTANCE_NAME", nargs="+")
         return parser
 
@@ -87,5 +94,24 @@ class CreateMigrations(lister.Lister):
                     raise action_migration
             else:
                 batch_migration_action.print_operations()
+
+        if args.replicate_flavors:
+            for flavor in source_client.nova.flavors.list(is_public=None):
+                flavor_migration_action = (
+                        flavor_actions.FlavorCreationAction(
+                            {'src_flavor_id': flavor.id},
+                            source_openstack_client=source_client,
+                            destination_openstack_client=destination_client,
+                            coriolis_client=coriolis))
+                try:
+                    if args.not_drill:
+                        flavor_migration_action.execute_operations()
+                    else:
+                        flavor_migration_action.print_operations()
+                except Exception as action_exception:
+                    LOG.warn("Error occured while recreating flavor "
+                             "'%s'. Rolling back all changes", flavor.id)
+                    flavor_migration_action.cleanup()
+                    raise action_exception
 
         return MigrationFormatter().list_objects(migrations)
