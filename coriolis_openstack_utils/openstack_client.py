@@ -84,10 +84,18 @@ class OpenStackClient(object):
         self.keystone = keystone_client.Client(
             version=identity_api_version, session=session)
 
+        # Getting latest nova client microversion
         nova_region_name = connection_info.get(
             "nova_region_name", region_name)
-        self.nova = nova_client.Client(
+        client_nova = nova_client.Client(
             NOVA_API_VERSION, session=session, region_name=nova_region_name)
+        latest_nova_version = client_nova.versions.get_current().version
+        if latest_nova_version:
+            client_nova = nova_client.Client(
+                latest_nova_version,
+                region_name=nova_region_name,
+                session=client_nova.client.session)
+        self.nova = client_nova
 
         neutron_region_name = connection_info.get(
             "neutron_region_name", region_name)

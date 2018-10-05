@@ -107,6 +107,12 @@ NEW_FLAVOR_NAME_OPT = conf.StrOpt(
     help="String format for flavor names on the destination. "
          "Must contain the format string '%(original)s'. "
          "Example: %(original)s-Migrated")
+NEW_KEYPAIR_NAME_OPT = conf.StrOpt(
+    "new_keypair_name_format", required=True,
+    help="String format for keypair names on the destination. "
+         "Should contain the format string '%(original)s', "
+         "to preserve original name."
+         "Example: %(original)s-Migrated")
 
 
 NEW_TENANT_NEUTRON_QUOTAS_OPT = conf.DictOpt(
@@ -147,8 +153,7 @@ DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     NEW_SUBNAME_NAME_OPT, NEW_NETWORK_NAME_OPT, NEW_NETWORK_TYPE_OPT,
     NEW_PHYSICAL_NETWORK_OPT, NEW_ROUTER_NAME_OPT, EXTERNAL_NETWORK_MAP_OPT,
     NEW_USER_NAME_OPT, NEW_USERS_PASSWORD_OPT, SHUTDOWN_INSTANCES_OPT,
-    NEW_FLAVOR_NAME_OPT]
-
+    NEW_FLAVOR_NAME_OPT, NEW_KEYPAIR_NAME_OPT]
 CONF.register_opts(
     DESTINATION_OPTS, constants.DESTINATION_OPT_GROUP_NAME)
 
