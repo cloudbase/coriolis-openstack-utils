@@ -141,6 +141,9 @@ EXTERNAL_NETWORK_MAP_OPT = conf.DictOpt(
 NEW_USERS_PASSWORD_OPT = conf.StrOpt(
     "new_users_password",
     help="Default password for newly-migrated users.")
+COPY_ROUTES_OPT = conf.BoolOpt(
+    "copy_routes", default=False,
+    help="Whether to copy static routes from source routers.")
 
 
 # TODO (aznashwan): determine value of adding extra migration opts:
@@ -153,7 +156,7 @@ DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     NEW_SUBNAME_NAME_OPT, NEW_NETWORK_NAME_OPT, NEW_NETWORK_TYPE_OPT,
     NEW_PHYSICAL_NETWORK_OPT, NEW_ROUTER_NAME_OPT, EXTERNAL_NETWORK_MAP_OPT,
     NEW_USER_NAME_OPT, NEW_USERS_PASSWORD_OPT, SHUTDOWN_INSTANCES_OPT,
-    NEW_FLAVOR_NAME_OPT, NEW_KEYPAIR_NAME_OPT]
+    NEW_FLAVOR_NAME_OPT, NEW_KEYPAIR_NAME_OPT, COPY_ROUTES_OPT]
 CONF.register_opts(
     DESTINATION_OPTS, constants.DESTINATION_OPT_GROUP_NAME)
 

@@ -81,3 +81,5 @@ new_tenant_neutron_quotas = security_group: -1
 new_tenant_open_default_secgroup = false
 # NOTE: only used when 'new_tenant_open_default_secgroup' is true:
 new_tenant_allowed_protocols = tcp, udp, icmp
+# whether to copy static routes from source routers
+copy_routes = False

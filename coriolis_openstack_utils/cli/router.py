@@ -50,6 +50,9 @@ class MigrateRouter(lister.Lister):
             "--dest-tenant-name", dest="dest_tenant_name",
             help="The name of the destination tenant.")
         parser.add_argument(
+            "--copy-routes", dest="copy_routes", action="store_true",
+            help="Copy source static routes.")
+        parser.add_argument(
             "--not-a-drill", dest="not_drill", action="store_true",
             default=False,
             help="If unset, tooling will only print the indented operations.")
@@ -78,6 +81,9 @@ class MigrateRouter(lister.Lister):
         router_creation_payload = {
             'src_router_id': src_router_id,
             'dest_tenant_id': dest_tenant_id}
+
+        if args.copy_routes:
+            router_creation_payload['copy_routes'] = True
 
         router_creation_action = network_actions.RouterCreationAction(
             router_creation_payload,
