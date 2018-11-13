@@ -29,6 +29,7 @@ ACTION_TYPE_CHECK_CREATE_USER = "create_user"
 ACTION_TYPE_CHECK_CREATE_REPLICA = "create_replica"
 ACTION_TYPE_CHECK_CREATE_FLAVOR = "create_flavor"
 ACTION_TYPE_CHECK_CREATE_KEYPAIR = "create_keypair"
+ACTION_TYPE_CHECK_CREATE_PORT = "create_port"
 
 
 class BaseAction(object, with_metaclass(abc.ABCMeta)):

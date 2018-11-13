@@ -238,3 +238,17 @@ def get_migration_assessment(source_client, coriolis, migration_id):
 def list_instances(openstack_client, filters={}):
     filters['all_tenants'] = True
     return openstack_client.nova.servers.list(search_opts=filters)
+
+
+def get_instance_id(openstack_client, tenant_name, instance_name):
+    project_id = openstack_client.get_project_id(tenant_name)
+    filters = {'tenant_id': project_id, 'project_id': project_id,
+               'name': instance_name}
+    instances = list_instances(openstack_client, filters=filters)
+    if not instances:
+        raise Exception("Instance named '%s' in tenant named '%s' not "
+                        "found" % (instance_name, tenant_name))
+    if len(instances) > 1:
+        raise Exception("Multiple instances named '%s' in tenant named '%s' "
+                        "found" % (instance_name, tenant_name))
+    return instances[0].id
