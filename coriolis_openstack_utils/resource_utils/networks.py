@@ -5,6 +5,7 @@ from coriolis_openstack_utils import conf
 from coriolis_openstack_utils.resource_utils import subnets
 
 from oslo_log import log as logging
+import neutronclient.common.exceptions
 
 CONF = conf.CONF
 LOG = logging.getLogger(__name__)
@@ -21,8 +22,16 @@ def list_networks(openstack_client, tenant_id, filters={}):
 
 
 def create_network(openstack_client, body):
-    network_id = openstack_client.neutron.create_network(
-        {'network': body})['network']['id']
+    try:
+        network_id = openstack_client.neutron.create_network(
+            {'network': body})['network']['id']
+    except neutronclient.common.exceptions.BadRequest as badrequest:
+        # on older OpenStack versions, `port_security_enabled` is not supported
+        LOG.warn("Recreating network failed with message %s, retrying without"
+                 "carrying over 'port_security_enabled'" % badrequest)
+        body.pop('port_security_enabled', 0)
+        network_id = openstack_client.neutron.create_network(
+            {'network': body})['network']['id']
     return network_id
 
 

@@ -72,6 +72,14 @@ network_map = external: external, yes: no
 # used for router migrations, if not set, tool assumes same name on destination
 # external_network_name_map = source_ext_net : dest_ext_net
 # storage_map = iscsi1:iscsi2
+#
+# Whether or not to have the utility scripts pre-create the Neutron port(s) of
+# the VM(s) on the destination OpenStack and instruct Coriolis to use them.
+# This is useful for preserving non-standard Neutron port
+# parameters (ex: 'allowed_address_pairs') whose replication cannot be handled
+# by Coriolis itself. The port(s) must maintain the same MAC address for
+# Coriolis to be able to identify and reuse them on the destination.
+pre_create_neutron_ports = true
 
 # Quotas for the newly-created tenant(s):
 # new_tenant_admin_users = bob, alice, mike
