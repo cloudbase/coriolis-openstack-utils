@@ -42,9 +42,10 @@ def get_body(openstack_client, network_id):
         body['provider:physical_network'] = network_type_map.get(
             src_network['provider:physical_network'])
 
-    if physical_network_map.get(src_network['provider:network_type']):
+    src_network_type = src_network.get("provider:network_type")
+    if src_network_type and physical_network_map.get(src_network_type):
         body['provider:network_type'] = physical_network_map.get(
-            src_network['provider:network_type'])
+            src_network_type)
 
     body['availability_zone_hints'] = src_network['availability_zones']
 
@@ -87,7 +88,9 @@ def check_network_similarity(
     for k in src_network:
         if k in relevant_keys:
             if k == 'provider:network_type':
-                if network_type_map.get(src_network[k]) == dest_network.get(k):
+                src_network_type = src_network.get(k)
+                if src_network_type and network_type_map.get(
+                        src_network_type) == dest_network.get(k):
                     conflict_keys.add(k)
             elif k == 'provider:physical_network':
                 if physical_network_map.get(
