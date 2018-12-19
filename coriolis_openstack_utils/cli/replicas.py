@@ -85,12 +85,12 @@ class CreateReplicas(lister.Lister):
             if args.not_drill:
                 try:
                     replicas = batch_replica_action.execute_operations()
-                except Exception as action_migration:
+                except (Exception, KeyboardInterrupt):
                     LOG.warn("Error occured while creating replicas for "
                              "instances '%s'. Rolling back all changes",
                              source_vms)
                     batch_replica_action.cleanup()
-                    raise action_migration
+                    raise
 
             else:
                 batch_replica_action.print_operations()

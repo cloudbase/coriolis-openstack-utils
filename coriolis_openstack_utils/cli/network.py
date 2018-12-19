@@ -105,11 +105,11 @@ class MigrateNetwork(lister.Lister):
             if args.not_drill:
                 try:
                     network = network_creation_action.execute_operations()
-                except Exception as action_exception:
+                except (Exception, KeyboardInterrupt):
                     LOG.warn("Error occured while recreating network with id "
                              "'%s'. Rolling back all changes.", src_network_id)
                     network_creation_action.cleanup()
-                    raise action_exception
+                    raise
             else:
                 network_creation_action.print_operations()
                 network = {

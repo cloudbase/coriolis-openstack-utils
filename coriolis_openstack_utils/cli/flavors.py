@@ -82,11 +82,11 @@ class MigrateFlavor(lister.Lister):
             if args.not_drill:
                 try:
                     flavor = flavor_creation_action.execute_operations()
-                except Exception as action_exception:
+                except (Exception, KeyboardInterrupt):
                     LOG.warn("Error occured while recreating flavor "
                              "'%s'. Rolling back all changes", src_flavor_id)
                     flavor_creation_action.cleanup()
-                    raise action_exception
+                    raise
             else:
                 flavor_creation_action.print_operations()
                 flavor = {
