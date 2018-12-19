@@ -86,32 +86,32 @@ class CreateMigrations(lister.Lister):
             if args.not_drill:
                 try:
                     migrations = batch_migration_action.execute_operations()
-                except Exception as action_migration:
+                except (Exception, KeyboardInterrupt):
                     LOG.warn("Error occured while creating migrations for "
                              "instances '%s'. Rolling back all changes",
                              source_vms)
                     batch_migration_action.cleanup()
-                    raise action_migration
+                    raise
             else:
                 batch_migration_action.print_operations()
 
         if args.replicate_flavors:
             for flavor in source_client.nova.flavors.list(is_public=None):
                 flavor_migration_action = (
-                        flavor_actions.FlavorCreationAction(
-                            {'src_flavor_id': flavor.id},
-                            source_openstack_client=source_client,
-                            destination_openstack_client=destination_client,
-                            coriolis_client=coriolis))
+                    flavor_actions.FlavorCreationAction(
+                        {'src_flavor_id': flavor.id},
+                        source_openstack_client=source_client,
+                        destination_openstack_client=destination_client,
+                        coriolis_client=coriolis))
                 try:
                     if args.not_drill:
                         flavor_migration_action.execute_operations()
                     else:
                         flavor_migration_action.print_operations()
-                except Exception as action_exception:
+                except (Exception, KeyboardInterrupt):
                     LOG.warn("Error occured while recreating flavor "
                              "'%s'. Rolling back all changes", flavor.id)
                     flavor_migration_action.cleanup()
-                    raise action_exception
+                    raise
 
         return MigrationFormatter().list_objects(migrations)

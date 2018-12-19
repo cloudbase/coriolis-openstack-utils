@@ -104,12 +104,12 @@ class MigrateSecurityGroup(lister.Lister):
             if args.not_drill:
                 try:
                     secgroup = secgroup_creation_action.execute_operations()
-                except Exception as action_exception:
+                except (Exception, KeyboardInterrupt):
                     LOG.warn("Error occured while recreating security group "
                              "with name '%s'. Rolling back all changes.",
                              args.secgroup_name)
                     secgroup_creation_action.cleanup()
-                    raise action_exception
+                    raise
             else:
                 secgroup_creation_action.print_operations()
                 secgroup = {

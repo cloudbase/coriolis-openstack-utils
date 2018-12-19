@@ -116,11 +116,11 @@ class MigrateTenant(lister.Lister):
             if args.not_drill:
                 try:
                     tenant = tenant_creation_action.execute_operations()
-                except Exception as action_exception:
+                except (Exception, KeyboardInterrupt):
                     LOG.warn("Error occured while recreating source tenant "
                              "'%s'. Rolling back changes", src_tenant_name)
                     tenant_creation_action.cleanup()
-                    raise action_exception
+                    raise
             else:
                 tenant_creation_action.print_operations()
                 tenant = {

@@ -140,17 +140,17 @@ class MigrateUser(lister.Lister):
                             try:
                                 action = keypair_creation_action
                                 action.execute_operations()
-                            except Exception:
+                            except (Exception, KeyboardInterrupt):
                                 LOG.warn(
                                     "Error occured while recreating "
                                     "keypair \"%s\". Rolling back all "
                                     "changes." % keypair.id)
                                 keypair_creation_action.cleanup()
-                except Exception as action_exception:
+                except (Exception, KeyboardInterrupt):
                     LOG.warn("Error occured while recreating user with id"
                              " '%s'. Rolling back all changes", src_user_id)
                     user_creation_action.cleanup()
-                    raise action_exception
+                    raise
             else:
                 user_creation_action.print_operations()
                 user = {

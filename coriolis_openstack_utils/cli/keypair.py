@@ -64,12 +64,12 @@ class MigrateKeypair(lister.Lister):
             if args.not_drill:
                 try:
                     keypair = keypair_creation_action.execute_operations()
-                except Exception as action_exception:
+                except (Exception, KeyboardInterrupt):
                     LOG.warn("Error occured while recreating keypair"
                              " \"%s\". Rolling back all changes",
                              args.src_keypair_name)
                     keypair_creation_action.cleanup()
-                    raise action_exception
+                    raise
             else:
                 keypair_creation_action.print_operations()
                 keypair = {
