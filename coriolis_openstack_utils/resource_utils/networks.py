@@ -34,11 +34,9 @@ def get_body(openstack_client, network_id):
         'subnets'])
 
     body = {k: v for k, v in src_network.items() if k in relevant_keys}
-    # 'provider:physical_network'
     network_type_map = CONF.destination.network_type_mapping
     physical_network_map = CONF.destination.physical_network_mapping
-    # 'provider:network_type'
-    if network_type_map.get(src_network['provider:physical_network']):
+    if network_type_map.get(src_network.get('provider:physical_network')):
         body['provider:physical_network'] = network_type_map.get(
             src_network['provider:physical_network'])
 
@@ -93,8 +91,9 @@ def check_network_similarity(
                         src_network_type) == dest_network.get(k):
                     conflict_keys.add(k)
             elif k == 'provider:physical_network':
-                if physical_network_map.get(
-                        src_network[k]) == dest_network.get(k):
+                src_phys_net = src_network.get(k)
+                if src_phys_net and physical_network_map.get(
+                        src_phys_net) == dest_network.get(k):
                     conflict_keys.add(k)
             elif src_network[k] == dest_network.get(k):
                 conflict_keys.add(k)
