@@ -137,7 +137,7 @@ def create_router(destination_client, migr_info):
         LOG.info("Adding interface for subnet '%s' to router '%s' "
                  % (dest_subnet_name, body['name']))
         destination_client.neutron.add_interface_router(
-            router_id, dest_subnet_id)
+            router_id, body={'subnet_id': dest_subnet_id})
 
     return router_id
 
