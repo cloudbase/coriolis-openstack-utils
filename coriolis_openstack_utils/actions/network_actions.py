@@ -301,6 +301,7 @@ class RouterCreationAction(base.BaseAction):
     param action_payload: dict(): payload (params) for the action
     must contain 'src_router_id'
                  'dest_tenant_id'
+                 'copy_routes' (default: False)
     """
 
     action_type = base.ACTION_TYPE_CHECK_CREATE_ROUTER
@@ -381,6 +382,14 @@ class RouterCreationAction(base.BaseAction):
             'dest_tenant_id']
         router_id = routers.create_router(
             self._destination_openstack_client, migr_info)
+
+        if self.payload.get('copy_routes') or CONF.destination.copy_routes:
+            src_routes = routers.get_source_routes(
+                self._source_openstack_client, self.payload['src_router_id'])
+            LOG.info(
+                "Adding routes '%s' to router '%s'" % (src_routes, router_id))
+            routers.add_routes_to_dest(
+                self._destination_openstack_client, src_routes, router_id)
 
         router = routers.get_router(
             self._destination_openstack_client, router_id)

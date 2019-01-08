@@ -61,12 +61,14 @@ def get_migration_info(source_client, name_or_id):
     ext_gateway_info = router['external_gateway_info']
 
     src_ext_subnet_ids = set()
-    for fixed_ip in ext_gateway_info['external_fixed_ips']:
-        src_ext_subnet_ids.add(fixed_ip['subnet_id'])
-    ext_networks_ids = [subnets.get_subnet(source_client, subnet_id)[
-        'network_id'] for subnet_id in src_ext_subnet_ids]
-    ext_network_names = [networks.get_network(source_client, network_id)[
-        'name'] for network_id in ext_networks_ids]
+    ext_network_names = []
+    if ext_gateway_info:
+        for fixed_ip in ext_gateway_info['external_fixed_ips']:
+            src_ext_subnet_ids.add(fixed_ip['subnet_id'])
+        ext_networks_ids = [subnets.get_subnet(source_client, subnet_id)[
+            'network_id'] for subnet_id in src_ext_subnet_ids]
+        ext_network_names = [networks.get_network(source_client, network_id)[
+            'name'] for network_id in ext_networks_ids]
 
     # mapped with new_subnet_name_format and new_network_name_format
     src_subnet_ids = set()
@@ -106,17 +108,19 @@ def create_router(destination_client, migr_info):
     src_subnets = migr_info['src_subnets']
 
     external_network_map = CONF.destination.external_network_name_map
-    dest_ext_net_names = [external_network_map.get(net_name, net_name)
-                          for net_name in src_ext_net_names]
+    if src_ext_net_names:
+        dest_ext_net_names = [external_network_map.get(net_name, net_name)
+                              for net_name in src_ext_net_names]
 
-    dest_ext_net_ids = [networks.get_network(
-        destination_client, net_name)['id'] for net_name in dest_ext_net_names]
-    for net_id in dest_ext_net_ids:
-        LOG.info(
-            "Adding external network %s gateway to router %s"
-            % (net_id, router_id))
-        destination_client.neutron.add_gateway_router(
-            router_id, {'network_id': net_id})
+        dest_ext_net_ids = [networks.get_network(
+            destination_client, net_name)['id'] for net_name in
+            dest_ext_net_names]
+        for net_id in dest_ext_net_ids:
+            LOG.info(
+                "Adding external network %s gateway to router %s"
+                % (net_id, router_id))
+            destination_client.neutron.add_gateway_router(
+                router_id, {'network_id': net_id})
 
     new_net_name_format = CONF.destination.new_network_name_format
     new_subnet_name_format = CONF.destination.new_subnet_name_format
@@ -154,3 +158,14 @@ def delete_router(openstack_client, name):
     elif routers_length == 0:
         LOG.info("Unable to delete router named '%s'."
                  "No router found." % name)
+
+
+def get_source_routes(openstack_client, router_id):
+    src_router = get_router(openstack_client, router_id)
+    src_router_routes = src_router['routes']
+    return src_router_routes
+
+
+def add_routes_to_dest(openstack_client, routes, router_id):
+    openstack_client.neutron.update_router(
+        router_id, body={'router': {'routes': routes}})
