@@ -144,6 +144,15 @@ NEW_USERS_PASSWORD_OPT = conf.StrOpt(
 COPY_ROUTES_OPT = conf.BoolOpt(
     "copy_routes", default=False,
     help="Whether to copy static routes from source routers.")
+CARRY_PORT_INFO_OPT = conf.BoolOpt(
+    "pre_create_neutron_ports", default=False,
+    help="Whether or not to have the utility scripts pre-create the Neutron"
+         "port(s) of the VM(s) on the destination OpenStack and instruct"
+         "Coriolis to use them. This is useful for preserving non-standard"
+         "Neutron port parameters (ex: 'allowed_address_pairs') whose "
+         "replication cannot be handled by Coriolis itself. The port(s) must "
+         "maintain the same MAC address for Coriolis to be able to identify "
+         "and reuse them on the destination.")
 
 
 # TODO (aznashwan): determine value of adding extra migration opts:
@@ -156,7 +165,8 @@ DESTINATION_OPTS = OPENSTACK_CONNECTION_OPTS + [
     NEW_SUBNAME_NAME_OPT, NEW_NETWORK_NAME_OPT, NEW_NETWORK_TYPE_OPT,
     NEW_PHYSICAL_NETWORK_OPT, NEW_ROUTER_NAME_OPT, EXTERNAL_NETWORK_MAP_OPT,
     NEW_USER_NAME_OPT, NEW_USERS_PASSWORD_OPT, SHUTDOWN_INSTANCES_OPT,
-    NEW_FLAVOR_NAME_OPT, NEW_KEYPAIR_NAME_OPT, COPY_ROUTES_OPT]
+    NEW_FLAVOR_NAME_OPT, NEW_KEYPAIR_NAME_OPT, COPY_ROUTES_OPT,
+    CARRY_PORT_INFO_OPT]
 CONF.register_opts(
     DESTINATION_OPTS, constants.DESTINATION_OPT_GROUP_NAME)
 

@@ -2,6 +2,7 @@
 # All Rights Reserved.
 
 """ Module defining OpenStack security-group-related actions. """
+import ipaddress
 
 from oslo_log import log as logging
 
@@ -399,3 +400,142 @@ class RouterCreationAction(base.BaseAction):
     def cleanup(self):
         routers.delete_router(
             self._destination_openstack_client, self.get_new_router_name())
+
+
+class PortCreationAction(base.BaseAction):
+    """ Action class for replicating Neutron ports.
+    param action_payload: dict(): payload (params) for the action
+    must contain 'src_port_id'
+                 'dest_network_id'
+    """
+
+    action_type = base.ACTION_TYPE_CHECK_CREATE_PORT
+    NEW_PORT_DESCRIPTION_FORMAT = (
+        "Pre-created by the 'coriolis-openstack-utils' for source port with ID"
+        " '%s' for use on a Migrated/Replicated VM.")
+
+    @property
+    def relevant_keys(self):
+        relevant_keys = [
+            'allowed_address_pairs', 'extra_dhcp_opts',
+            'binding:profile', 'admin_state_up', 'mac_address']
+        return relevant_keys
+
+    def check_port_similarity(self, src_port, dest_port):
+        src_port_info = {k: v for k, v in
+                         src_port.items() if k in self.relevant_keys}
+        dest_port_info = {k: v for k, v in
+                          dest_port.items() if k in self.relevant_keys}
+        src_port_ips = set([el['ip_address'] for el in src_port['fixed_ips']])
+        dest_port_ips = set(
+            [el['ip_address'] for el in dest_port['fixed_ips']])
+        return (src_port_info == dest_port_info and
+                src_port_ips == dest_port_ips)
+
+    def check_already_done(self):
+        src_port = self._source_openstack_client.neutron.find_resource_by_id(
+            'port', self.payload['src_port_id'])
+        conflicting = self._destination_openstack_client.neutron.list_ports(
+            network_id=self.payload['dest_network_id'])['ports']
+        for dest_port in conflicting:
+            if self.check_port_similarity(src_port, dest_port):
+                LOG.info("Found destination port '%s' with same "
+                         "information as source port." % dest_port)
+                return {"done": True, "result": dest_port}
+
+        return {"done": False, "result": None}
+
+    def equivalent_to(self, other_action):
+        if other_action.action_type == self.action_type:
+            if self.payload['src_port_id'] == (
+                    other_action.payload.get('src_port_id')):
+                if self.payload['dest_network_id'] == (
+                        other_action.payload.get('dest_network_id')):
+                        return True
+        return False
+
+    def print_operations(self):
+        super(PortCreationAction, self).print_operations()
+        src_port = self._source_openstack_client.neutron.find_resource_by_id(
+            'port', self.payload['src_port_id'])
+        LOG.info(
+            "Create new destination port with info '%s'." % src_port)
+
+    def execute_operations(self):
+        super(PortCreationAction, self).print_operations()
+        done = self.check_already_done()
+        src_port = self._source_openstack_client.neutron.find_resource_by_id(
+            'port', self.payload['src_port_id'])
+        src_port_info = {k: v for k, v in
+                         src_port.items() if k in self.relevant_keys}
+        src_port_info['network_id'] = self.payload['dest_network_id']
+        src_ip_addresses = [el['ip_address'] for el in src_port['fixed_ips']]
+        src_mac_address = src_port['mac_address']
+        if src_ip_addresses:
+            fixed_ips = []
+            dest_neutron = self._destination_openstack_client.neutron
+            net = dest_neutron.find_resource_by_id(
+                'network', self.payload['dest_network_id'])
+            subnets_id_map = {
+                sid: ipaddress.ip_network(
+                    subnets.get_subnet(
+                        self._destination_openstack_client, sid)['cidr'])
+                for sid in net['subnets']}
+
+            # iterate through all the IP addresses desired for this interface
+            # and find a suitable subnet for each:
+            for ip_address in src_ip_addresses:
+                target_subnet = None
+                try:
+                    addr = ipaddress.ip_address(ip_address)
+                    for subnet_id, subnet in subnets_id_map.items():
+                        if addr in subnet:
+                            target_subnet = subnet_id
+                            break
+                except ValueError:
+                    LOG.warning(
+                        "Improper IP address '%s', ignoring.", ip_address)
+                    continue
+
+                if not target_subnet:
+                    LOG.warning(
+                        "Could not find suitable subnet for IP address '%s'"
+                        "for NIC with MAC address '%s', ignoring.",
+                        ip_address, src_mac_address)
+                    continue
+
+                fixed_ips.append(
+                    {"ip_address": ip_address, "subnet_id": target_subnet})
+                src_port_info['fixed_ips'] = fixed_ips
+
+            src_port_info['project_id'] = (
+                net['project_id'] or net['tenant_id'])
+            src_port_info['tenant_id'] = (
+                net['project_id'] or net['tenant_id'])
+
+            dest_description = (self.NEW_PORT_DESCRIPTION_FORMAT %
+                                self.payload.get('src_port_id'))
+            src_port_info['description'] = dest_description
+
+        if done["done"]:
+            LOG.info(
+                "Port with info %s already exists" % src_port_info)
+            return done["result"]
+
+        LOG.info("Creating destination port with info '%s'" %
+                 src_port_info)
+        dest_port = self._destination_openstack_client.neutron.create_port(
+            body={'port': src_port_info})
+        return dest_port['port']
+
+    def cleanup(self):
+        src_port = self._source_openstack_client.neutron.find_resource_by_id(
+            'port', self.payload['src_port_id'])
+        conflicting = self._destination_openstack_client.neutron.list_ports(
+            network_id=self.payload['dest_network_id'])['ports']
+        for dest_port in conflicting:
+            if self.check_port_similarity(src_port, dest_port):
+                LOG.info("Deleting destination port '%s' with same "
+                         "information as source port." % dest_port)
+                self._destination_openstack_client.neutron.delete_port(
+                    dest_port['id'])

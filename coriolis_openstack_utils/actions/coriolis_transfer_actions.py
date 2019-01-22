@@ -11,7 +11,10 @@ from coriolis_openstack_utils import conf
 from coriolis_openstack_utils import utils
 from coriolis_openstack_utils.actions import base
 from coriolis_openstack_utils.actions import coriolis_endpoint_actions
+from coriolis_openstack_utils.actions import network_actions
 from coriolis_openstack_utils.resource_utils import instances
+from coriolis_openstack_utils.resource_utils import networks
+
 
 CONF = conf.CONF
 LOG = logging.getLogger(__name__)
@@ -206,6 +209,45 @@ class TransferAction(base.BaseAction):
                 self.source_endpoint_create_action.cleanup()
                 self.dest_endpoint_create_action.cleanup()
 
+    def pre_create_neutron_ports(self):
+        LOG.info(
+            "Carry port info option set, "
+            "setting port reuse policy to 'reuse_ports")
+        self._destination_env['port_reuse_policy'] = 'reuse_ports'
+
+        instance_id = instances.get_instance_id(
+            self._source_openstack_client,
+            self.payload['instance_tenant_name'],
+            self.payload['instance_name'])
+        network_map = self._destination_env['network_map']
+        src_ports = self._source_openstack_client.neutron.list_ports(
+            device_id=instance_id)['ports']
+
+        for port in src_ports:
+            src_port_network_id = port['network_id']
+            src_neutron = self._source_openstack_client.neutron
+            src_port_network_name = src_neutron.find_resource_by_id(
+                'network', src_port_network_id)['name']
+            dest_client = self._destination_openstack_client
+            dest_tenant_id = dest_client.get_project_id(
+                    CONF.destination.new_tenant_name_format %
+                    {'original': self.payload['instance_tenant_name']})
+            dest_port_network = (network_map.get(src_port_network_id) or
+                                 network_map.get(src_port_network_name))
+            dest_network_id = dest_client.neutron.find_resource(
+                'network', dest_port_network,
+                project_id=dest_tenant_id)['id']
+            port_payload = {'src_port_id': port['id'],
+                            'dest_network_id': dest_network_id}
+
+            port_migration_action = network_actions.PortCreationAction(
+                port_payload,
+                source_openstack_client=self._source_openstack_client,
+                destination_openstack_client=(
+                    self._destination_openstack_client))
+            self.subactions.append(port_migration_action)
+            port_migration_action.execute_operations()
+
 
 class MigrationCreationAction(TransferAction):
     """ (dict) action_payload must contain:
@@ -262,8 +304,12 @@ class MigrationCreationAction(TransferAction):
 
     def create_transfer(self, source_endpoint, destination_endpoint):
         skip_os_morphing = CONF.destination.skip_os_morphing
+        pre_create_neutron_ports = CONF.destination.pre_create_neutron_ports
+        if pre_create_neutron_ports:
+            self.pre_create_neutron_ports()
+
         return self._coriolis_client.migrations.create(
-            source_endpoint, destination_endpoint,
+            source_endpoint, destination_endpoint, {},
             self._destination_env, [self.payload['instance_name']],
             skip_os_morphing=skip_os_morphing)
 
@@ -334,8 +380,12 @@ class ReplicaCreationAction(TransferAction):
         return done
 
     def create_transfer(self, source_endpoint, destination_endpoint):
+        pre_create_neutron_ports = CONF.destination.pre_create_neutron_ports
+        if pre_create_neutron_ports:
+            self.pre_create_neutron_ports()
+
         replica = self._coriolis_client.replicas.create(
-            source_endpoint, destination_endpoint,
+            source_endpoint, destination_endpoint, {},
             self._destination_env, [self.payload['instance_name']])
 
         if self.payload['execute_replica'] is True:

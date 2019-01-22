@@ -271,8 +271,9 @@ class OpenStackClient(object):
             # NOTE: the `domain_name`.lower() is a workaround to needing
             # the domain ID (not the name!)
             domain_name = self.connection_info["project_domain_name"].lower()
+            domain_id = self.keystone.domains.find(name=domain_name)
             project = self.keystone.projects.create(
-                project_name, domain_name,
+                project_name, domain_id,
                 description=project_description)
 
         return project.id
